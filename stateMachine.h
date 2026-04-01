@@ -20,6 +20,7 @@ typedef enum{
 
 void init();
 STATE updateSupervisionFrame(uint8_t byte, STATE st,bool isTx);
+STATE updateIFrame(uint8_t byte, STATE st);
 bool isValidControlByte(uint8_t byte);
 
 #endif

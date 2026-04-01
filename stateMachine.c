@@ -91,3 +91,68 @@ bool isValidControlByte(uint8_t byte) {
             return false;
     }
 }
+
+
+STATE updateIFrame(uint8_t byte, STATE st)
+{
+    //VER expectedAdress!
+    uint8_t expectedAddress = TRANSMITER;       
+    
+    switch (st){
+
+        case STATE_START:
+            if(byte == FLAG){
+                st= FLAG_RCV;
+            }
+            break;
+
+        case FLAG_RCV:
+            if(byte== FLAG)
+            {
+                st= FLAG_RCV;
+            } 
+            else if(byte == expectedAddress)
+            {
+                st = A_RCV;
+            } 
+            else{
+                st = STATE_START;
+            }
+            break;
+        case A_RCV:
+
+            if(byte == FLAG)
+            {
+                st = FLAG_RCV;
+            }
+            else if(isValidControlByte(byte))
+            {
+                received_control_byte = byte;
+    
+                st = C_RCV;
+            }
+            else st = STATE_START;
+            break;
+
+        case C_RCV:
+            if(byte == FLAG)
+            {
+                st = FLAG_RCV;
+                received_control_byte = 0;
+            }
+            else if(byte == (expectedAddress ^ received_control_byte))
+            {
+                st = BCC_OK;
+            }
+            else {
+                st = STATE_START;
+            }
+            break;
+        case BCC_OK:
+            if(byte == FLAG){
+                st = STOP;
+            }
+            break;
+    }   
+    return st;  
+}
