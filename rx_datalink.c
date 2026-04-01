@@ -18,26 +18,11 @@
 
 #define MAX_ALARM_COUNT_RX 4 
 
-#define RR0 0x05
-#define RR1 0x85
-
-#define DISC 0x0B
-#define UA 0x07
-
 
 
 int alarmEnabled = FALSE;
 int alarmCount  = 0;
 
-// Alarm function handler.
-// This function will run whenever the signal SIGALRM is received.
-void alarmHandler(int signal)
-{
-    alarmEnabled = FALSE;
-    alarmCount++;
-
-    printf("Alarm #%d received\n", alarmCount);
-}
 
 /**
  * @return 
