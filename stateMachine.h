@@ -6,7 +6,8 @@
 #include <stdint.h>
 #include "Config.h"
 
-uint8_t frameReady;
+
+uint8_t received_control_byte;
 
 typedef enum{
     STATE_START,
@@ -19,5 +20,6 @@ typedef enum{
 
 void init();
 STATE updateSupervisionFrame(uint8_t byte, STATE st,bool isTx);
+bool isValidControlByte(uint8_t byte);
 
 #endif

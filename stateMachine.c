@@ -2,6 +2,7 @@
 
 #include "stateMachine.h"
 
+received_control_byte = 0;
 
 void init()
 {
@@ -10,8 +11,9 @@ void init()
 
 STATE updateSupervisionFrame(uint8_t byte, STATE st, bool isTx)
 {
-    uint8_t expected_C   = isTx ? 0x07 : 0x03;          
-    uint8_t expected_BCC = TRANSMITER ^ expected_C; 
+    //VER expectedAdress!
+    uint8_t expectedAddress = isTx ? RECEIVER : TRANSMITER;       
+    
     switch (st){
 
         case STATE_START:
@@ -25,7 +27,7 @@ STATE updateSupervisionFrame(uint8_t byte, STATE st, bool isTx)
             {
                 st= FLAG_RCV;
             } 
-            else if(byte == TRANSMITER)
+            else if(byte == expectedAddress)
             {
                 st = A_RCV;
             } 
@@ -39,8 +41,10 @@ STATE updateSupervisionFrame(uint8_t byte, STATE st, bool isTx)
             {
                 st = FLAG_RCV;
             }
-            else if(byte == expected_C)
+            else if(isValidControlByte(byte))
             {
+                received_control_byte = byte;
+    
                 st = C_RCV;
             }
             else st = STATE_START;
@@ -50,8 +54,9 @@ STATE updateSupervisionFrame(uint8_t byte, STATE st, bool isTx)
             if(byte == FLAG)
             {
                 st = FLAG_RCV;
+                received_control_byte = 0;
             }
-            else if(byte == expected_BCC)
+            else if(byte == (expectedAddress ^ received_control_byte))
             {
                 st = BCC_OK;
             }
@@ -69,4 +74,20 @@ STATE updateSupervisionFrame(uint8_t byte, STATE st, bool isTx)
             break;
     }   
     return st;  
+}
+
+// Helper function to check if a byte is a valid control field
+bool isValidControlByte(uint8_t byte) {
+    switch(byte) {
+        case SET:
+        case UA:
+        case RR0:
+        case RR1:
+        case REJ0:
+        case REJ1:
+        case DISC:
+            return true;
+        default:
+            return false;
+    }
 }

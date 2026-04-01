@@ -18,6 +18,7 @@
 
 struct termios oldtio;
 STATE current_state = STATE_START;
+
 //static int serial_fd = -1;
 
 struct linkLayer {
@@ -67,16 +68,13 @@ int llopen(int argc, char *argv[])
         return -1;
     }
 
-    if (setup_termios(fd) == -1) {
-        return -1; 
-    }
-
+    if (setup_termios(fd) == -1) return -1; 
     
     unsigned char setFrame[5] = {
         FLAG,
         TRANSMITER,
-        0x03,                   
-        TRANSMITER ^ 0x03,
+        SET,                   
+        TRANSMITER ^ SET,
         FLAG
     };
 
@@ -89,7 +87,9 @@ int llopen(int argc, char *argv[])
 
     unsigned char bufR[MAX_SIZE] = {0};
     
-    
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    current_state = STATE_START;
     while (alarmCount < 4 && current_state != STOP)//read 5 bytes! 
     {
         if (alarmEnabled == FALSE) {
@@ -108,12 +108,15 @@ int llopen(int argc, char *argv[])
             current_state = updateSupervisionFrame(byte, current_state, true);
             if(current_state == STOP)
             {
-                alarm(0);//reset alarm! 
-                return fd;//all correct! 
+                if(received_control_byte == UA)
+                {
+                    alarm(0);
+                    return fd; 
+                }
             } 
         } 
     }
-    // === FAILED ===
+    //failed 
     printf("Failed to receive UA after %d retries\n", alarmCount);
     close(fd);
     return -1;  
@@ -133,16 +136,15 @@ int llopen(int argc, char *argv[])
 */
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
-    //write in fd
+    
     if (fd < 0 || buf == NULL || bufSize <= 0) return -1;
+
     static int Ns = 0;
-
     uint8_t bcc2 = 0;
-    for (int i = 0; i < bufSize; i++) {
-        bcc2 ^= buf[i];
-    }
+    
+    for (int i = 0; i < bufSize; i++) bcc2 ^= buf[i];
 
-    unsigned char stuffed[MAX_SIZE * 2];//can we set to 256*2 !??
+    unsigned char stuffed[MAX_SIZE * 2];
     int stuffedLen = 0;
 
     for (int i = 0; i < bufSize; i++) {
@@ -162,20 +164,35 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         • Control field - value 0x40 indicates that it is the Information frame number 1
     */
 
-    //create a mehtod to buil the header!? 
-    unsigned char control = (Ns == 0) ? 0x00 : 0x40;
-    unsigned char headerFrame_TX[4] = {
-        FLAG,
-        TRANSMITER,//Adress field
-        control,                  
-        TRANSMITER ^ control,//BBC1
-    };
-    //BUILD THE I FRAME FIRST! 
 
-    //what we should receive? ...
-    unsigned char bufR[MAX_SIZE] = {0};
-    
-    
+    //BUILD THE I FRAME FIRST! 
+    unsigned char I_frame[MAX_SIZE * 2 + 10];
+    int frameLen = 0;
+
+    uint8_t C    = (Ns == 0) ? 0x00 : 0x40;
+    uint8_t BCC1 = TRANSMITER ^ C;
+
+    I_frame[frameLen++] = FLAG;
+    I_frame[frameLen++] = TRANSMITER;   
+    I_frame[frameLen++] = C;            
+    I_frame[frameLen++] = BCC1;         
+
+    memcpy(&I_frame[frameLen], stuffed, stuffedLen); frameLen += stuffedLen;
+
+    if (bcc2 == FLAG || bcc2 == 0x7D) {
+        I_frame[frameLen++] = 0x7D;
+        I_frame[frameLen++] = (bcc2 == FLAG) ? 0x5E : 0x5D;
+    } else {
+        I_frame[frameLen++] = bcc2;
+    }
+    I_frame[frameLen++] = FLAG;
+
+    int bytes_write = write(fd,I_frame,frameLen);
+    if (bytes_write != frameLen) return -1;
+
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    current_state = STATE_START;
     while (alarmCount < 4 && current_state != STOP)
     {
         if (alarmEnabled == FALSE) {
@@ -183,27 +200,42 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             alarmEnabled = TRUE;
 
             if (alarmCount > 0) { 
-                
+                write(fd, I_frame, frameLen);
             }
         }
 
         //Do the reading:
         uint8_t byte = 0;
+        
         if(read(fd, &byte, 1) > 0)
         {
+            uint8_t expectedRR = (Ns == 0) ? RR1 : RR0;//receiver got message 0 - send ready for 1!
+            uint8_t expectedREJ = (Ns == 0) ? REJ0 : REJ1;
             current_state = updateSupervisionFrame(byte, current_state, true);
-            //
+            
             if(current_state == STOP)
             {
-                alarm(0);//reset alarm! 
-                
-                
-                //return all the bytes written or just the payload ones??
-            } 
+                if(expectedRR == received_control_byte)
+                {
+                    Ns = 1 - Ns;
+                    alarm(0);//reset alarm! 
+                    return frameLen;
+               }
+               else if(received_control_byte == expectedREJ ) 
+               {
+                alarm(0);
+                alarmEnabled = FALSE;
+                alarmCount++;//we should count right!?
+                current_state = STATE_START;
+               }
+               else{
+                current_state = STATE_START;
+               }
+            }
         } 
     }
     
-    if(alarmCount == 3) return -1; //Error message!
+    if(alarmCount >= 4) return -1; //Error message!
 
 }
 
@@ -216,6 +248,93 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 » closes serial port
 */
 
+/*
+» llclose
+» sends DISC frame
+» reads one byte at a time to receive DISC frame
+» sends UA frame
+» closes serial port
+*/
+int llclose(int fd)
+{
+   
+    unsigned char discFrame[5] = {
+        FLAG,
+        TRANSMITER,
+        DISC,
+        TRANSMITER ^ DISC,
+        FLAG
+    };
+
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    current_state = STATE_START;
+    int disc_received = 0; 
+    while (alarmCount < 4 && current_state != STOP)
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(3);
+            alarmEnabled = TRUE;
+
+            write(fd, discFrame, 5);
+            if (alarmCount > 0) { 
+                printf("Timeout -> DISC frame resent (retry %d/3)\n", alarmCount);
+            } else {
+                printf("Sent DISC frame... waiting for Receiver's DISC.\n");
+            }
+        }
+
+        uint8_t byte = 0;
+        if(read(fd, &byte, 1) > 0)
+        {
+            current_state = updateSupervisionFrame(byte, current_state, true);
+            
+            if(current_state == STOP)
+            {
+                if(received_control_byte == DISC)
+                {
+                    alarm(0); 
+                    disc_received = 1;
+                }
+                else
+                {
+                    current_state = STATE_START; 
+                }
+            } 
+        } 
+    }
+
+    if (!disc_received) {
+        printf("Error: Failed to receive DISC from receiver after 3 retries.\n");
+    }
+
+    
+    unsigned char uaFrame[5] = {
+        FLAG,
+        TRANSMITER, 
+        UA,                   
+        TRANSMITER ^ UA,
+        FLAG
+    };
+
+    write(fd, uaFrame, 5);
+    printf("Sent final UA frame.\n");
+
+    sleep(1); 
+
+    
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    {
+        perror("tcsetattr");
+        return -1;
+    }
+
+    close(fd);
+    printf("Serial port closed cleanly.\n");
+    
+
+    return (disc_received ? 1 : -1);
+}
 
 int setup_termios(int fd)
 {

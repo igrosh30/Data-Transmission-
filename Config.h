@@ -16,6 +16,16 @@ typedef struct {
     uint8_t frameReady;
 }Frame;
 
+typedef enum{
+    SET = 0x03,
+    UA  = 0x07,
+    RR0 = 0x05,
+    RR1 = 0x85,
+    REJ0= 0x01,
+    REJ1= 0x81,
+    DISC= 0x0B,
+}CONTROL;
+
 
 /*
 • A (Address) to distinguish whether the frame is a command or a reply
