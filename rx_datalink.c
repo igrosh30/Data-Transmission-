@@ -23,6 +23,7 @@
 int alarmEnabled = FALSE;
 int alarmCount  = 0;
 
+CONTROL frame_number_to_receive;//global
 
 /**
  * @return 
@@ -106,6 +107,7 @@ int llopen(char portName[], bool isTransmitter){
         send_ua(fd);
     }//falta trasmitter
     
+    frame_number_to_receive = RR0; //imporatante!!
     
     return fd;
 }
@@ -181,9 +183,9 @@ int send_ua(int fd){
  * @return 
  * \n -1 -> buffer demasiado pequeno
  * \n -2 -> max retries excedida
- * \n -3 -> erro de BCC2
  * \n NUMBER OF BYTES READ -> sucesso
  */
+
 int llread(int fd, char* buf){
     uint16_t size_buf = sizeof(buf);
 
@@ -198,20 +200,18 @@ int llread(int fd, char* buf){
     STATE currentState = STATE_START;   
 
     uint64_t bufCounter = 0;
-    uint64_t bufFrameCounter = 0;
     uint8_t BCC2_tracker = 0;
 
     alarmEnabled = 1; //global variable -> tem de começar a 1!!!!
     alarmCount = 0; //global variable
-    bool frame_number_to_receive = 0;
-    bool frame_number_received = 0;
+    
     int error_msg = 0;
     while (1)
     {
         if (alarmEnabled == FALSE)
         {   
             //Request the frame que ainda não recebeu
-            bufSend[2] = frame_number_to_receive == 0 ? RR0 : RR1;
+            
             bufSend[3] = bufSend[1]^bufSend[2]; //BCC1
 
             int bytes = write(fd, bufSend, 5);
@@ -220,9 +220,13 @@ int llread(int fd, char* buf){
 
             alarm(TIMEOUT_RECEIVER);
             alarmEnabled = TRUE;
-
-            bufFrameCounter = 0;
         }
+
+        if(alarmCount > MAX_ALARM_COUNT_RX){
+            error_msg = -2;
+            break;
+        }
+
 
         char byte;
         int bytesRead = read(fd, &byte, 1);
@@ -230,21 +234,24 @@ int llread(int fd, char* buf){
             continue;
         
         //update state machine
-        updateI_Frame(byte, &currentState, &frame_number_received);
+        received_control_byte = 0;
+        currentState = updateIFrame(byte, currentState);
+        //received_control_byte é atualizado dps da função
 
         if (currentState == BCC_OK){
 
-            if(bufCounter >= size_buf || bufFrameCounter >= MAX_SIZE){
+            if(bufCounter >= size_buf || bufCounter >= MAX_SIZE){
                 error_msg =  -4; //maior do que o buffer predefinido
                 break;
             }
-            if(frame_number_received != frame_number_to_receive){
+            if((received_control_byte == frame_number_to_receive)){
                 //está a receber duplicado
+                bufSend[2] = frame_number_to_receive; //send RRx
                 alarmEnabled = 0; //vai voltar a pedir aquele frame que ele queria
                 alarm(0);
                 continue;
             }
-
+            //recebeu o correto!
 
             //Atualizar BCC2
             if (bufCounter == 0) //ou seja, primeiro valor 
@@ -257,28 +264,27 @@ int llread(int fd, char* buf){
             //Acrescentar byte ao buffer
             buf[bufCounter] = byte;
             bufCounter++;
-            bufFrameCounter++;
         }
 
         if (currentState == STOP){
             //Verificar BCC2 dos dados
             if (buf[bufCounter - 1] == BCC2_tracker)
             {
-                frame_number_to_receive = !frame_number_to_receive;
+                frame_number_to_receive == RR0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
-                alarm(0);
-                alarmEnabled = 0;
-            }else{
-                error_msg = -3;
+                error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
                 break;
+            }else{
+                bufSend[2] = frame_number_to_receive == RR0 ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
+
+                int bytes = write(fd, bufSend, 5);
+                printf("REJ frame sent. %d bytes written\n", bytes);
+                printf("Frame number waiting to receive: %d\n", frame_number_to_receive);
             }
             
         }
 
-        if(alarmCount > MAX_ALARM_COUNT_RX){
-            error_msg = -2;
-            break;
-        }
+        
     }
 
     alarm(0);
