@@ -125,7 +125,7 @@ int llopen(int argc, char *argv[])
 » implements error detection (compute BCC over the data packet)
 » parses data packet to implement byte stuffing (transparency)
 » builds Information frame Ns (Ns=0 or 1)
-» sends I frame
+» sends I frame - this goes defined in the control field! 
 » reads one byte at a time to receive response
 » if negative response (REJ) or no response, resends I frame up to a maximum number of times
 (retransmission mechanism explained in slide 46)
@@ -163,17 +163,14 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
     */
 
     //create a mehtod to buil the header!? 
-    unsigned char control= Ns ? 0x00 : 0x40;
+    unsigned char control = (Ns == 0) ? 0x00 : 0x40;
     unsigned char headerFrame_TX[4] = {
         FLAG,
         TRANSMITER,//Adress field
         control,                  
         TRANSMITER ^ control,//BBC1
     };
-    //write the header:
-    int header_bytes = wirte(fd,headerFrame_TX,4); // without the flag! 
-    int payload_bytes = wirte(fd, stuffed, stuffedLen); // wirte data bytes
-    int last_bytes = write (fd, [bcc2,FLAG], 2);//have error! 
+    //BUILD THE I FRAME FIRST! 
 
     //what we should receive? ...
     unsigned char bufR[MAX_SIZE] = {0};
@@ -186,11 +183,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             alarmEnabled = TRUE;
 
             if (alarmCount > 0) { 
-                //write again the frame to rx read! 
-                int header_bytes = wirte(fd,headerFrame_TX,4); // without the flag! 
-                int payload_bytes = wirte(fd, stuffed, stuffedLen); // wirte data bytes
-                int last_bytes = write (fd, [bcc2,FLAG], 2);//have error! 
-                printf("Timeout → SET frame resent (retry %d/3)\n", alarmCount);
+                
             }
         }
 
@@ -203,8 +196,8 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             if(current_state == STOP)
             {
                 alarm(0);//reset alarm! 
-                //Check what we received! 
-                return (header_bytes + payload_bytes + last_bytes);
+                
+                
                 //return all the bytes written or just the payload ones??
             } 
         } 
