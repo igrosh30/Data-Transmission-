@@ -23,7 +23,7 @@
 int alarmEnabled = FALSE;
 int alarmCount  = 0;
 
-CONTROL frame_number_to_receive;//global
+CONTROL frame_number_to_receive; //global
 
 /**
  * @return 
@@ -203,6 +203,7 @@ int llread(int fd, char* buf){
     uint8_t BCC2_tracker = 0;
 
     alarmEnabled = 1; //global variable -> tem de começar a 1!!!!
+    alarm(TIMEOUT_RECEIVER); //Eu faço isto assim que é para a lógica do loop não ter de ter uma exceção para o primeiro caso
     alarmCount = 0; //global variable
     
     int error_msg = 0;
@@ -315,7 +316,7 @@ int llclose(int fd, bool isTransmitter){
 
     STATE currentState = STATE_START;
 
-    
+    int error_msg = 0;
     if (isTransmitter)
     {    
         while (1)
@@ -334,18 +335,23 @@ int llclose(int fd, bool isTransmitter){
             if(bytesRead > 0){
                 //byte
                 //update state machine
-                updateSupervisionFrame(byte, &currentState, 1); //ESTA FUNÇÃO VAI SER BUÉ GERAL E LEVAR COM A E C COMO 
+                received_control_byte = 0;
+                updateSupervisionFrame(byte, currentState, 1); //ESTA FUNÇÃO VAI SER BUÉ GERAL E LEVAR COM A E C COMO 
                 //neste caso, do DISC
             }
             if (currentState == STOP){
-                alarm(0);
+                error_msg = 0;
                 break;
             }
             if(alarmCount > MAX_ALARM_COUNT_RX){
-                alarm(0);
-                return -1;
+                error_msg = -1;
+                break;
             }
         }
+        alarm(0);
+        if(error_msg < 0)
+            return error_msg;
+        
         //enviou DISC e recebeu DISC
         if(send_ua(fd) < 0){
             return -3;
@@ -356,7 +362,7 @@ int llclose(int fd, bool isTransmitter){
         {
             if (alarmEnabled == FALSE)
             {   
-                alarm(TIMEOUT_RECEIVER); // Set alarm to be triggered in 3s
+                alarm(TIMEOUT_RECEIVER);
                 alarmEnabled = TRUE;
             }
 
@@ -365,20 +371,25 @@ int llclose(int fd, bool isTransmitter){
             if(bytesRead > 0){
                 //byte
                 //update state machine
-                updateSupervisionFrame(byte, &currentState, 1); //ESTA FUNÇÃO VAI SER BUÉ GERAL E LEVAR COM A E C COMO 
+                updateSupervisionFrame(byte, currentState, 1); //ESTA FUNÇÃO VAI SER BUÉ GERAL E LEVAR COM A E C COMO 
                 //neste caso, do DISC
             }
             if (currentState == STOP){
-                alarm(0);
-                break;
+                if(received_control_byte == DISC){
+                    error_msg = 0;
+                    break;
+                }
+                currentState = STATE_START;
             }
             if(alarmCount > MAX_ALARM_COUNT_RX){
-                alarm(0);
-                return -1;
+                error_msg = -1;
+                break;
             }
         }
         //recebeu DISC
-
+        if(error_msg < 0)
+            return error_msg;
+        
         //send DISC
         int bytes = write(fd, bufDISC, 5);
         printf("DISC frame sent. %d bytes written\n", bytes);
@@ -403,16 +414,17 @@ int llclose(int fd, bool isTransmitter){
                 //neste caso, do DISC
             }
             if (currentState == STOP){
-                alarm(0);
+                error_msg = 0;
                 break;
             }
             if(alarmCount > MAX_ALARM_COUNT_RX){
-                alarm(0);
-                return -1;
+                error_msg = -1;
+                break;
             }
         }
+        alarm(0);
         //recebeu UA
-        return 0;
+        return error_msg;
     }
 
 }
