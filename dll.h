@@ -38,7 +38,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize);
 
 int llopen(const char serialPortName[], bool isTransmitter);
 
-int llread(int fd, char* buf);
+int llread(int fd, char* buf, uint16_t size_buf);
 
 int wait_SET(int fd);
 
