@@ -15,7 +15,7 @@
 
 struct termios oldtio;
 
-uint8_t frame_number_to_receive = 0;
+uint8_t frame_number_to_receive;
 
 
 /*
@@ -58,6 +58,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
     //failed 
     //printf("Failed to receive UA after %d retries\n", alarmCount);
     //close(fd);
+    frame_number_to_receive = RR0; //inicializar esta variável no início
     return fd;  
 }
 
@@ -252,10 +253,8 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             
             if(current_state == STOP)
             {
-                printf("\treceived_control_byte: 0x%x\n", received_control_byte);
                 if(expectedRR == received_control_byte)
                 {
-                    printf("\t\tExpected RR\n");
                     Ns = 1 - Ns;
                     alarm(0);//reset alarm! 
                     return frameLen;
@@ -351,7 +350,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 error_msg =  -4; //maior do que o buffer predefinido
                 break;
             }
-            uint8_t byte_to_receive = frame_number_to_receive == 0 ? IF0 : IF1;
+            uint8_t byte_to_receive = frame_number_to_receive == RR0 ? IF0 : IF1;
             if(received_control_byte != byte_to_receive){
                 printf("\tA receber duplicado\n");
                 //está a receber duplicado
@@ -382,7 +381,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
             //Qnd faço xxxx^xxxx dá sempre 0. Logo se BCC2_tracker for 0, então está correto
             if (BCC2_tracker == 0)
             {
-                frame_number_to_receive == 0 ? RR1 : RR0;
+                frame_number_to_receive = RR0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
                 error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
 
@@ -395,7 +394,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
 
                 break;
             }else{
-                bufSend[2] = frame_number_to_receive == RR0 ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
+                bufSend[2] = frame_number_to_receive; //receber o mesmo, porque não o conseguiu ler
 
                 int bytes = write(fd, bufSend, 5);
                 printf("\tREJ frame sent. %d bytes written\n", bytes);
