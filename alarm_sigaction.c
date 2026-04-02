@@ -36,9 +36,10 @@ int setup()
     {
         perror("sigaction");
         exit(1);
+        return -1;
     }
 
-    printf("Alarm configured\n");
+    //printf("Alarm configured\n");
     
     return 0;
 

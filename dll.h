@@ -52,4 +52,10 @@ int send_DISC(int fd);
 
 int wait_UA(int fd);
 
+int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive);
+
+int wait_C(int fd, unsigned char C_receive);
+
+int send_C(int fd, unsigned char C_send);
+
 #endif

@@ -6,11 +6,14 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include "Config.h"
 #include "alarm_sigaction.h" 
 #include "stateMachine.h"
 
 
 #include "dll.h"
+
+#define DEBUG 1
 
 
 struct termios oldtio;
@@ -26,9 +29,26 @@ llopen
 » returns success or failure*/
 //NOTE: int argc char *argv -> this will be called passing in main! for the appLication layer! 
 //FINAL FUNCION: int llopen(int porta, TRANSMITTER | RECEIVER)-TRANS/RECEIVER is a flag! 
+/**
+ * llopen
+ * opens serial port (invokes openSerialPort)
+ * sends SET frame
+ * reads one byte at a time to receive UA frame (see state machine in slide 40)
+ * returns success or failure
+ * @return
+ * \n -1 -> Alarm count exceeded
+ * \n -2 -> error writing frame
+ * \n -5 -> error opening serial port
+ * \n -6 -> error setting termios
+ * \n -7 -> error setting alarm
+ */
 int llopen(const char serialPortName[], bool isTransmitter)
 {
-    printf("Enter llopnen\n");
+    if (DEBUG)
+    {
+        printf("llopnen\n");
+    }
+    
     // Open serial port device for reading and writing, and not as controlling tty
     // because we don't want to get killed if linenoise sends CTRL-C.
     int fd = open(serialPortName, O_RDWR | O_NOCTTY);
@@ -36,19 +56,37 @@ int llopen(const char serialPortName[], bool isTransmitter)
     {
         perror(serialPortName);
         printf("\tError opening Serial port\n");
-        return -1;
+        return -5;
+    }
+    if (DEBUG)
+    {
+        printf("Serial port opned.\n");
     }
 
     if (setup_termios(fd) == -1)
     {
         printf("\tError setup termios\n");
-        return -1;    
+        return -6;    
+    }
+    if(DEBUG){
+        printf("Termios setup successfully\n");
     }
     
-    setup();//setup the alarm! 
+    if(setup() == -1){
+        printf("\tError setup alarm\n");
+        return -7;
+    }
+    if(DEBUG){
+        printf("Alarm setup successfully\n");
+    }
 
     if(isTransmitter){
-        send_set_N_wait_UA(fd);
+        int error = send_C_N_wait_C(fd, SET, UA);
+        if (error < 0)
+        {
+            printf("\tError sending SET and waiting for UA\n");
+            return error;
+        }        
     }else{
         wait_SET(fd);
         send_UA(fd);
@@ -635,4 +673,134 @@ int setup_termios(int fd)
 
     printf("New termios structure set\n");
     return 0;
+}
+
+
+/**
+ * send_C_N_wait_C
+ * @return
+ * \n -1 -> timeout (max alarm count exceeded)
+ * \n -2 -> error writing frame
+ * \n 0 -> success
+ */
+int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive){
+    unsigned char sendFrame[5] = {
+        FLAG,
+        TRANSMITER,
+        C_send,
+        TRANSMITER ^ C_send,
+        FLAG
+    };
+
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    STATE current_state = STATE_START;
+    int error = 0;
+    while (1)
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(TIMEOUT_RECEIVER);
+            alarmEnabled = TRUE;
+
+            int bytes_written = write(fd, sendFrame, 5);
+            if (bytes_written != 5) {
+                printf("\tError writing frame to serial port\n");
+                error = -2; // Error writing frame
+                break;
+            }
+            if (alarmCount > 0) { 
+                printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, TIMEOUT_RECEIVER);
+            } else {
+                printf("\tSent frame... waiting for Receiver's response.\n");
+            }
+        }
+
+        uint8_t byte = 0;
+        if(read(fd, &byte, 1) > 0)
+        {
+            current_state = updateSupervisionFrame(byte, current_state, true);
+
+            if (DEBUG)
+            {
+                printf("\tByte: 0x%x\n", byte);
+                printf("\tCurrent state: %d\n", current_state);
+            }
+            
+            if(current_state == STOP)
+            {
+                if(received_control_byte == C_receive)
+                {
+                    //error = 0;
+                    break;
+                }
+                else
+                {
+                    current_state = STATE_START; 
+                }
+            } 
+        }
+        if(alarmCount >= MAX_ALARM_COUNT_RX){
+            error = -1;
+            break;
+        }
+    }
+    alarm(0);
+
+    return error;
+}
+
+
+/**
+ * wait_C
+ * @return
+ * \n -1 -> timeout (max alarm count exceeded)
+ * \n 0 -> success
+ */
+int wait_C(int fd, unsigned char C_receive){
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    STATE current_state = STATE_START;
+    int error = 0;
+    while (1)
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(TIMEOUT_RECEIVER);
+            alarmEnabled = TRUE;
+
+            printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, TIMEOUT_RECEIVER);
+
+        }
+
+        uint8_t byte = 0;
+        if(read(fd, &byte, 1) > 0)
+        {
+            current_state = updateSupervisionFrame(byte, current_state, true);
+
+            if (DEBUG)
+            {
+                printf("\tByte: 0x%x\n", byte);
+                printf("\tCurrent state: %d\n", current_state);
+            }
+            
+            if(current_state == STOP)
+            {
+                if(received_control_byte == C_receive)
+                {
+                    //error = 0;
+                    break;
+                }
+                else
+                {
+                    current_state = STATE_START; 
+                }
+            } 
+        }
+        if(alarmCount >= MAX_ALARM_COUNT_RX){
+            error = -1;
+            break;
+        }
+    }
+    alarm(0);
+
+    return error;
 }
