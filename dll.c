@@ -170,7 +170,8 @@ int send_UA(int fd){
 */
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
-    printf("fd : %d\n buf : %p \n bufSiez: %d\n", fd, buf, bufSize);
+    printf("\tllwrite\n");
+    printf("\tfd : %d\nbuf : %p \nbufSiez: %d\n", fd, buf, bufSize);
     if (fd < 0 || buf == NULL || bufSize <= 0) return -1;
 
     static int Ns = 0;
@@ -243,6 +244,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         
         if(read(fd, &byte, 1) > 0)
         {
+            printf("Bytes Received: 0x%x\n", byte);
             uint8_t expectedRR = (Ns == 0) ? RR1 : RR0;//receiver got message 0 - send ready for 1!
             uint8_t expectedREJ = (Ns == 0) ? REJ0 : REJ1;
             current_state = updateSupervisionFrame(byte, current_state, true);
