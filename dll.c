@@ -196,7 +196,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             alarmEnabled = TRUE;
 
             if (alarmCount > 0) { 
-                C    = (Ns == 0) ? 0x00 : 0x40;
+                //C    = (Ns == 0) ? 0x00 : 0x40; //Alex tentou alterar 
                 write(fd, I_frame, frameLen);
             }
         }
