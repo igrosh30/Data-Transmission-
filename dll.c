@@ -316,6 +316,19 @@ int llread(int fd, char* buf, uint16_t size_buf){
         //received_control_byte é atualizado dps da função
 
         if (current_state == DATA){
+            //destuffing e guardar no buffer
+            if(byte == 0x5e && buf[bufCounter - 1] == 0x7d) //flag destuffed
+            {
+                //0x7e 
+                bufCounter--; //remover o 0x7d do buffer
+                byte = 0x7e;
+            }
+            if(byte == 0x5d && buf[bufCounter - 1] == 0x7d) //escape destuffed
+            {
+                //0x7d
+                bufCounter--; //remover o 0x7d do buffer
+                byte = 0x7d;
+            }
 
             if(
                 bufCounter >= size_buf - 1 || //como eu neste momento estou a guardar o BCC antes de o rejeitar, tenho de garantir isto
