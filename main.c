@@ -18,7 +18,15 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    llopen(serialPortName, isTransmitter);
+    if(isTransmitter){
+        int fd = llopen(serialPortName, isTransmitter);
+        char data [] = "Hello";
+        llwrite(fd, data, sizeof(data));
+    }else{
+        int fd = llopen(serialPortName, isTransmitter);
+        char data[MAX_SIZE];
+        llread(fd, data);
+    }
 
     return 0;
 }
