@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
 
     if(isTransmitter){
         int fd = llopen(serialPortName, isTransmitter);
-        unsigned char data [] = "Hello World!";
+        unsigned char data [] = "}H~ello World!";
         int error = llwrite(fd, data, sizeof(data));
         printf("%d\n", error);
         llclose(fd, isTransmitter);

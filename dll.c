@@ -196,6 +196,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             alarmEnabled = TRUE;
 
             if (alarmCount > 0) { 
+                C    = (Ns == 0) ? 0x00 : 0x40;
                 write(fd, I_frame, frameLen);
             }
         }
@@ -321,12 +322,14 @@ int llread(int fd, char* buf, uint16_t size_buf){
             {
                 //0x7e 
                 bufCounter--; //remover o 0x7d do buffer
+                BCC2_tracker = BCC2_tracker ^ 0x7d; //remover o efeito do 0x7d no BCC2 
                 byte = 0x7e;
             }
             if(byte == 0x5d && buf[bufCounter - 1] == 0x7d) //escape destuffed
             {
                 //0x7d
                 bufCounter--; //remover o 0x7d do buffer
+                BCC2_tracker = BCC2_tracker ^ 0x7d; //remover o efeito do 0x7d no BCC2
                 byte = 0x7d;
             }
 
