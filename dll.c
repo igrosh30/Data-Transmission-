@@ -15,7 +15,7 @@
 
 struct termios oldtio;
 
-uint8_t frame_number_to_receive;
+uint8_t frame_number_to_receive = 0;
 
 
 /*
@@ -283,9 +283,8 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
  * \n NUMBER OF BYTES READ -> sucesso
  */
 
-int llread(int fd, char* buf){
+int llread(int fd, char* buf, uint16_t size_buf){
     printf("llread\n");
-    uint16_t size_buf = sizeof(buf);
 
     char bufSend[5];
 
@@ -319,6 +318,7 @@ int llread(int fd, char* buf){
 
             alarm(TIMEOUT_RECEIVER);
             alarmEnabled = TRUE;
+            current_state = STATE_START;
         }
 
         if(alarmCount > MAX_ALARM_COUNT_RX){
@@ -341,11 +341,14 @@ int llread(int fd, char* buf){
 
         if (current_state == BCC_OK){
 
-            if(bufCounter >= size_buf || bufCounter >= MAX_SIZE){
+            if(bufCounter >= size_buf - 1 || bufCounter >= MAX_SIZE){
+                printf("Bc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, MAX_SIZE);
                 error_msg =  -4; //maior do que o buffer predefinido
                 break;
             }
-            if((received_control_byte == frame_number_to_receive)){
+            uint8_t byte_to_receive = frame_number_to_receive == 0 ? IF0 : IF1;
+            if((received_control_byte == byte_to_receive && 0)){
+                printf("A receber duplicado\n");
                 //está a receber duplicado
                 bufSend[2] = frame_number_to_receive; //send RRx
                 alarmEnabled = 0; //vai voltar a pedir aquele frame que ele queria
@@ -371,7 +374,7 @@ int llread(int fd, char* buf){
             //Verificar BCC2 dos dados
             if (buf[bufCounter - 1] == BCC2_tracker)
             {
-                frame_number_to_receive == RR0 ? RR1 : RR0;
+                frame_number_to_receive == 0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
                 error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
                 break;
