@@ -17,7 +17,7 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    llopen(serialPortName, true);
+    llopen(serialPortName, false);
 
     return 0;
 }

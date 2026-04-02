@@ -12,7 +12,7 @@ void init()
 STATE updateSupervisionFrame(uint8_t byte, STATE st, bool isTx)
 {
     //VER expectedAdress!
-    uint8_t expectedAddress = isTx ? RECEIVER : TRANSMITER;       
+    uint8_t expectedAddress = isTx ? TRANSMITER: RECEIVER;       
     
     switch (st){
 

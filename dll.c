@@ -51,7 +51,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         send_UA(fd);
     }
 
-
+    printf("Done");
     //failed 
     printf("Failed to receive UA after %d retries\n", alarmCount);
     close(fd);
@@ -120,6 +120,8 @@ int wait_SET(int fd){
         uint8_t byte = 0;
         if(read(fd, &byte, 1) > 0)
         {
+            printf("0x%x\n", byte);
+            printf("Current state: %d", current_state);
             current_state = updateSupervisionFrame(byte, current_state, true);
             if(current_state == STOP)
             {
@@ -141,7 +143,7 @@ int send_UA(int fd){
         FLAG,
         TRANSMITER,
         UA,            
-        TRANSMITER ^ SET,
+        TRANSMITER ^ UA,
         FLAG
     };
 
