@@ -25,8 +25,10 @@ int main(int argc, char *argv[]){
         printf("%d\n", error);
     }else{
         int fd = llopen(serialPortName, isTransmitter);
-        char data[MAX_SIZE];
-        llread(fd, data);
+        char data[MAX_SIZE] = {0};
+        int error = llread(fd, data, MAX_SIZE);
+        printf("%d\n", error);
+
     }
 
     return 0;
