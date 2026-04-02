@@ -111,7 +111,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         
     }
 
-    printf("\tllopen completed successfully\n\n");
+    printf("llopen completed successfully\n\n");
     frame_number_to_receive = RR0; //inicializar esta variável no início
     return fd;  
 }
