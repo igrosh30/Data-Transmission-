@@ -347,7 +347,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 break;
             }
             uint8_t byte_to_receive = frame_number_to_receive == 0 ? IF0 : IF1;
-            if((received_control_byte == byte_to_receive && 0)){
+            if(received_control_byte == byte_to_receive){
                 printf("A receber duplicado\n");
                 //está a receber duplicado
                 bufSend[2] = frame_number_to_receive; //send RRx
