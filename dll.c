@@ -59,7 +59,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
     //failed 
     //printf("Failed to receive UA after %d retries\n", alarmCount);
     //close(fd);
-    return -1;  
+    return fd;  
 }
 
 int send_set_N_wait_UA(int fd){
@@ -170,7 +170,7 @@ int send_UA(int fd){
 */
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
-    
+    printf("fd : %d\n buf : %d \n bufSiez: %d", fd, buf, bufSize);
     if (fd < 0 || buf == NULL || bufSize <= 0) return -1;
 
     static int Ns = 0;

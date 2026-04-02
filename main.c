@@ -20,8 +20,9 @@ int main(int argc, char *argv[]){
 
     if(isTransmitter){
         int fd = llopen(serialPortName, isTransmitter);
-        char data [] = "Hello";
-        llwrite(fd, data, sizeof(data));
+        unsigned char data [] = "Hello";
+        int error = llwrite(fd, data, sizeof(data));
+        printf("%d\n", error);
     }else{
         int fd = llopen(serialPortName, isTransmitter);
         char data[MAX_SIZE];
