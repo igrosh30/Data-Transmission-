@@ -24,6 +24,8 @@ typedef enum{
     REJ0= 0x01,
     REJ1= 0x81,
     DISC= 0x0B,
+    IF0= 0X00,
+    IF1= 0X40
 }CONTROL;
 
 
