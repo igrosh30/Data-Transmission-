@@ -29,19 +29,23 @@ llopen
 //FINAL FUNCION: int llopen(int porta, TRANSMITTER | RECEIVER)-TRANS/RECEIVER is a flag! 
 int llopen(const char serialPortName[], bool isTransmitter)
 {
+    printf("Enter llopnen\n");
     // Open serial port device for reading and writing, and not as controlling tty
     // because we don't want to get killed if linenoise sends CTRL-C.
     int fd = open(serialPortName, O_RDWR | O_NOCTTY);
     if (fd < 0)
     {
         perror(serialPortName);
+        printf("\tError opening Serial port\n");
         return -1;
     }
 
-    if (setup_termios(fd) == -1) return -1; 
+    if (setup_termios(fd) == -1)
+    {
+        printf("\tError setup termios\n");
+        return -1;    
+    }
     
-    
-
     setup();//setup the alarm! 
 
     if(isTransmitter){
@@ -51,7 +55,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         send_UA(fd);
     }
 
-    printf("Done");
+    printf("\tDone\n");
     //failed 
     //printf("Failed to receive UA after %d retries\n", alarmCount);
     //close(fd);
@@ -79,7 +83,7 @@ int send_set_N_wait_UA(int fd){
             alarmEnabled = TRUE;
 
             write(fd, setFrame, 5);
-            printf("Timeout → SET frame resent (retry %d/%d)\n", alarmCount, MAX_ALARM_COUNT_RX);
+            printf("\tTimeout → SET frame resent (retry %d/%d)\n", alarmCount, MAX_ALARM_COUNT_RX);
         }
 
         uint8_t byte = 0;
@@ -96,6 +100,8 @@ int send_set_N_wait_UA(int fd){
             } 
         } 
     }
+    alarm(0);
+    printf("\tError of alarm count\n");
     return -1;
 }
 

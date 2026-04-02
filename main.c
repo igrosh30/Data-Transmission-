@@ -17,9 +17,8 @@ int main(int argc, char *argv[]){
         exit(1);
         return 1;
     }
-    
+
     if(isTransmitter){
-        printf("Hey");
         int fd = llopen(serialPortName, isTransmitter);
         char data [] = "Hello";
         llwrite(fd, data, sizeof(data));
