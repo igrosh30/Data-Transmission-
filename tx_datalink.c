@@ -65,10 +65,10 @@ int llopen(int argc, char *argv[])
     if (fd < 0)
     {
         perror(serialPortName);
-        return -1;
+        return -2;
     }
 
-    if (setup_termios(fd) == -1) return -1; 
+    if (setup_termios(fd) == -1) return -3; 
     
     unsigned char setFrame[5] = {
         FLAG,
@@ -137,7 +137,7 @@ int llopen(int argc, char *argv[])
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
     
-    if (fd < 0 || buf == NULL || bufSize <= 0) return -1;
+    if (fd < 0 || buf == NULL || bufSize <= 0) return -5;
 
     static int Ns = 0;
     uint8_t bcc2 = 0;
@@ -188,7 +188,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
     I_frame[frameLen++] = FLAG;
 
     int bytes_write = write(fd,I_frame,frameLen);
-    if (bytes_write != frameLen) return -1;
+    if (bytes_write != frameLen) return -4;
 
     alarmCount = 0;
     alarmEnabled = FALSE;
@@ -326,7 +326,7 @@ int llclose(int fd)
     if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
     {
         perror("tcsetattr");
-        return -1;
+        return -3;
     }
 
     close(fd);
@@ -355,7 +355,7 @@ int setup_termios(int fd)
     newtio.c_oflag = 0;
     newtio.c_lflag = 0;
 
-    // --- CRITICAL FIX FOR YOUR STATE MACHINE ---
+    
     newtio.c_cc[VTIME] = 0; // Do not use the termios timer
     newtio.c_cc[VMIN] = 0;  // Block read() until exactly 0 byte arrives
 
