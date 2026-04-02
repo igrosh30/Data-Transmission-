@@ -40,18 +40,6 @@ int llopen(const char serialPortName[], bool isTransmitter);
 
 int llread(int fd, char* buf, uint16_t size_buf);
 
-int wait_SET(int fd);
-
-int send_set_N_wait_UA(int fd);
-int send_disc_N_wait_DISC(int fd);
-int wait_DISC(int fd);
-
-int send_UA(int fd);
-
-int send_DISC(int fd);
-
-int wait_UA(int fd);
-
 int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive);
 
 int wait_C(int fd, unsigned char C_receive);

@@ -14,22 +14,13 @@
 #include "dll.h"
 
 #define DESCRIPTION 1
-#define DEBUG 1
+#define DEBUG 0
 
 
 struct termios oldtio;
 
 uint8_t frame_number_to_receive;
 
-
-/*
-llopen
-» opens serial port (invokes openSerialPort)
-» sends SET frame
-» reads one byte at a time to receive UA frame (see state machine in slide 40)
-» returns success or failure*/
-//NOTE: int argc char *argv -> this will be called passing in main! for the appLication layer! 
-//FINAL FUNCION: int llopen(int porta, TRANSMITTER | RECEIVER)-TRANS/RECEIVER is a flag! 
 /**
  * llopen
  * opens serial port (invokes openSerialPort)
@@ -517,7 +508,6 @@ int setup_termios(int fd)
     return 0;
 }
 
-
 /**
  * send_C_N_wait_C
  * @return
@@ -562,7 +552,7 @@ int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive){
         {
             current_state = updateSupervisionFrame(byte, current_state, true);
 
-            if (DESCRIPTION)
+            if (DEBUG)
             {
                 printf("\tByte: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
@@ -618,7 +608,7 @@ int wait_C(int fd, unsigned char C_receive){
         {
             current_state = updateSupervisionFrame(byte, current_state, true);
 
-            if (DESCRIPTION)
+            if (DEBUG)
             {
                 printf("\tByte: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
