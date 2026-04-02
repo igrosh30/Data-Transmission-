@@ -382,6 +382,14 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 frame_number_to_receive == 0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
                 error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
+
+
+                bufSend[2] = frame_number_to_receive; //send RRx
+                bufSend[3] = bufSend[1]^bufSend[2];
+                int bytes = write(fd, bufSend, 5);
+                printf("\tRR frame sent. %d bytes written\n", bytes);
+                printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
+
                 break;
             }else{
                 bufSend[2] = frame_number_to_receive == RR0 ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
