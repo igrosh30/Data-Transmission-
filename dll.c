@@ -252,8 +252,10 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             
             if(current_state == STOP)
             {
+                printf("\treceived_control_byte: 0x%x\n", received_control_byte);
                 if(expectedRR == received_control_byte)
                 {
+                    printf("\t\tExpected RR\n");
                     Ns = 1 - Ns;
                     alarm(0);//reset alarm! 
                     return frameLen;
