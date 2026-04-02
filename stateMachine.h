@@ -7,7 +7,7 @@
 #include "Config.h"
 
 
-uint8_t received_control_byte;
+extern uint8_t received_control_byte;
 
 typedef enum{
     STATE_START,

@@ -2,7 +2,7 @@
 
 #include "stateMachine.h"
 
-received_control_byte = 0;
+uint8_t received_control_byte = 0;
 
 void init()
 {

@@ -16,6 +16,8 @@
 struct termios oldtio;
 STATE current_state = STATE_START;
 
+uint8_t frame_number_to_receive;
+
 
 /*
 llopen
@@ -222,14 +224,124 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
 }
 
-/*
 
-» llclose
-» sends DISC frame
-» reads one byte at a time to receive DISC frame
-» sends UA frame
-» closes serial port
-*/
+/**
+ * Pelo que percebi, esta função lê uma frame I apenas, e retorna para a application layer. A application layer é que tem de ir
+ * chamando várias vezes esta função para isso acontecer
+ * @return 
+ * \n -1 -> buffer demasiado pequeno
+ * \n -2 -> max retries excedida
+ * \n NUMBER OF BYTES READ -> sucesso
+ */
+
+int llread(int fd, char* buf){
+    uint16_t size_buf = sizeof(buf);
+
+    char bufSend[5];
+
+    bufSend[0] = FLAG;
+    bufSend[1] = 0x03;
+    bufSend[2] = 0; //will be set in the loop
+    bufSend[3] = 0; //same
+    bufSend[4] = FLAG;
+
+    STATE currentState = STATE_START;   
+
+    uint64_t bufCounter = 0;
+    uint8_t BCC2_tracker = 0;
+
+    alarmEnabled = 1; //global variable -> tem de começar a 1!!!!
+    alarm(TIMEOUT_RECEIVER); //Eu faço isto assim que é para a lógica do loop não ter de ter uma exceção para o primeiro caso
+    alarmCount = 0; //global variable
+    
+    int error_msg = 0;
+    while (1)
+    {
+        if (alarmEnabled == FALSE)
+        {   
+            //Request the frame que ainda não recebeu
+            
+            bufSend[3] = bufSend[1]^bufSend[2]; //BCC1
+
+            int bytes = write(fd, bufSend, 5);
+            printf("Supervision frame sent. %d bytes written\n", bytes);
+            printf("Frame number waiting to receive: %d\n", frame_number_to_receive);
+
+            alarm(TIMEOUT_RECEIVER);
+            alarmEnabled = TRUE;
+        }
+
+        if(alarmCount > MAX_ALARM_COUNT_RX){
+            error_msg = -2;
+            break;
+        }
+
+
+        char byte;
+        int bytesRead = read(fd, &byte, 1);
+        if (bytesRead == 0)
+            continue;
+        
+        //update state machine
+        received_control_byte = 0;
+        currentState = updateIFrame(byte, currentState);
+        //received_control_byte é atualizado dps da função
+
+        if (currentState == BCC_OK){
+
+            if(bufCounter >= size_buf || bufCounter >= MAX_SIZE){
+                error_msg =  -4; //maior do que o buffer predefinido
+                break;
+            }
+            if((received_control_byte == frame_number_to_receive)){
+                //está a receber duplicado
+                bufSend[2] = frame_number_to_receive; //send RRx
+                alarmEnabled = 0; //vai voltar a pedir aquele frame que ele queria
+                alarm(0);
+                continue;
+            }
+            //recebeu o correto!
+
+            //Atualizar BCC2
+            if (bufCounter == 0) //ou seja, primeiro valor 
+            {
+                BCC2_tracker = byte;
+            }else{
+                BCC2_tracker = BCC2_tracker ^ byte;
+            }        
+
+            //Acrescentar byte ao buffer
+            buf[bufCounter] = byte;
+            bufCounter++;
+        }
+
+        if (currentState == STOP){
+            //Verificar BCC2 dos dados
+            if (buf[bufCounter - 1] == BCC2_tracker)
+            {
+                frame_number_to_receive == RR0 ? RR1 : RR0;
+                bufCounter--; //BCC2 não é uma "data"
+                error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
+                break;
+            }else{
+                bufSend[2] = frame_number_to_receive == RR0 ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
+
+                int bytes = write(fd, bufSend, 5);
+                printf("REJ frame sent. %d bytes written\n", bytes);
+                printf("Frame number waiting to receive: %d\n", frame_number_to_receive);
+            }
+            
+        }
+
+        
+    }
+
+    alarm(0);
+    return error_msg;
+}
+
+
+
 
 /*
 » llclose

@@ -33,7 +33,7 @@ CONTROL frame_number_to_receive; //global
  * \n -4 -> could not set alarm (sigaction)
  * \n -5 -> timeout waiting for set frame
  */
-int llopen(char portName[], bool isTransmitter){
+int llopen(char serialPortName[], bool isTransmitter){
     // Open serial port device for reading and writing, and not as controlling tty
     // because we don't want to get killed if linenoise sends CTRL-C.
     fd = open(serialPortName, O_RDWR | O_NOCTTY);
@@ -289,7 +289,7 @@ int llread(int fd, char* buf){
     }
 
     alarm(0);
-    return error_msg
+    return error_msg;
 }
 
 

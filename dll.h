@@ -15,6 +15,9 @@
 #define MAX_SIZE 256
 #define BAUDRATE B38400
 
+#define TIMEOUT_RECEIVER 3 //seconds
+
+#define MAX_ALARM_COUNT_RX 4 //
 
 //static int serial_fd = -1;
 
@@ -35,6 +38,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize);
 
 int llopen(int argc, char *argv[]);
 
+int llread(int fd, char* buf);
 
 
 
