@@ -2,22 +2,23 @@
 
 
 int main(int argc, char *argv[]){
-    printf("Test\n");
+    printf("Test\n\n");
 
     const char *serialPortName = argv[1];
+    const bool isTransmitter = argv[2];
 
-    if (argc < 2)
+    if (argc < 3)
     {
         printf("Incorrect program usage\n"
                "Usage: %s <SerialPort>\n"
-               "Example: %s /dev/ttyS1\n",
+               "Example: %s /dev/ttyS1 1|0\n",
                argv[0],
                argv[0]);
         exit(1);
         return 1;
     }
 
-    llopen(serialPortName, false);
+    llopen(serialPortName, isTransmitter);
 
     return 0;
 }
