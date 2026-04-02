@@ -14,7 +14,6 @@
 
 
 struct termios oldtio;
-STATE current_state = STATE_START;
 
 uint8_t frame_number_to_receive;
 
@@ -63,6 +62,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
 }
 
 int send_set_N_wait_UA(int fd){
+    STATE current_state = STATE_START;
     unsigned char setFrame[5] = {
         FLAG,
         TRANSMITER,
@@ -108,7 +108,7 @@ int send_set_N_wait_UA(int fd){
 
 int wait_SET(int fd){
     
-
+    STATE current_state = STATE_START;
     unsigned char bufR[MAX_SIZE] = {0};
 
     alarmCount = 0;
@@ -226,7 +226,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
     alarmCount = 0;
     alarmEnabled = FALSE;
-    current_state = STATE_START;
+    STATE current_state = STATE_START;
     while (alarmCount < 4 && current_state != STOP)
     {
         if (alarmEnabled == FALSE) {
@@ -284,6 +284,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
  */
 
 int llread(int fd, char* buf){
+    printf("llread\n");
     uint16_t size_buf = sizeof(buf);
 
     char bufSend[5];
@@ -294,7 +295,7 @@ int llread(int fd, char* buf){
     bufSend[3] = 0; //same
     bufSend[4] = FLAG;
 
-    STATE currentState = STATE_START;   
+    STATE current_state = STATE_START;
 
     uint64_t bufCounter = 0;
     uint8_t BCC2_tracker = 0;
@@ -333,11 +334,12 @@ int llread(int fd, char* buf){
         
         //update state machine
         received_control_byte = 0;
-        currentState = updateIFrame(byte, currentState);
-        printf("\tcurrentState: %d\n", current_state);
+        printf("Byte: 0x%x\n", byte);
+        current_state = updateIFrame(byte, current_state);
+        printf("\t\tcurrentState: %d\n", current_state);
         //received_control_byte é atualizado dps da função
 
-        if (currentState == BCC_OK){
+        if (current_state == BCC_OK){
 
             if(bufCounter >= size_buf || bufCounter >= MAX_SIZE){
                 error_msg =  -4; //maior do que o buffer predefinido
@@ -365,7 +367,7 @@ int llread(int fd, char* buf){
             bufCounter++;
         }
 
-        if (currentState == STOP){
+        if (current_state == STOP){
             //Verificar BCC2 dos dados
             if (buf[bufCounter - 1] == BCC2_tracker)
             {
@@ -413,7 +415,7 @@ int llclose(int fd)
 
     alarmCount = 0;
     alarmEnabled = FALSE;
-    current_state = STATE_START;
+    STATE current_state = STATE_START;
     int disc_received = 0; 
     while (alarmCount < 4 && current_state != STOP)
     {
