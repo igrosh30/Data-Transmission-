@@ -313,8 +313,8 @@ int llread(int fd, char* buf, uint16_t size_buf){
             bufSend[3] = bufSend[1]^bufSend[2]; //BCC1
 
             int bytes = write(fd, bufSend, 5);
-            printf("Supervision frame sent. %d bytes written\n", bytes);
-            printf("Frame number waiting to receive: %d\n", frame_number_to_receive);
+            printf("\tSupervision frame sent. %d bytes written\n", bytes);
+            printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
 
             alarm(TIMEOUT_RECEIVER);
             alarmEnabled = TRUE;
@@ -334,21 +334,21 @@ int llread(int fd, char* buf, uint16_t size_buf){
         
         //update state machine
         received_control_byte = 0;
-        printf("Byte: 0x%x\n", byte);
+        printf("\tByte Received: 0x%x\n", byte);
         current_state = updateIFrame(byte, current_state);
         printf("\t\tcurrentState: %d\n", current_state);
         //received_control_byte é atualizado dps da função
 
-        if (current_state == BCC_OK){
+        if (current_state == DATA){
 
             if(bufCounter >= size_buf - 1 || bufCounter >= MAX_SIZE){
-                printf("Bc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, MAX_SIZE);
+                printf("\tBc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, MAX_SIZE);
                 error_msg =  -4; //maior do que o buffer predefinido
                 break;
             }
             uint8_t byte_to_receive = frame_number_to_receive == 0 ? IF0 : IF1;
-            if(received_control_byte == byte_to_receive){
-                printf("A receber duplicado\n");
+            if(received_control_byte != byte_to_receive){
+                printf("\tA receber duplicado\n");
                 //está a receber duplicado
                 bufSend[2] = frame_number_to_receive; //send RRx
                 alarmEnabled = 0; //vai voltar a pedir aquele frame que ele queria
@@ -363,7 +363,9 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 BCC2_tracker = byte;
             }else{
                 BCC2_tracker = BCC2_tracker ^ byte;
-            }        
+            }
+            printf("\tBCC2_Tracker: 0x%x\n", BCC2_tracker);
+
 
             //Acrescentar byte ao buffer
             buf[bufCounter] = byte;
@@ -372,7 +374,8 @@ int llread(int fd, char* buf, uint16_t size_buf){
 
         if (current_state == STOP){
             //Verificar BCC2 dos dados
-            if (buf[bufCounter - 1] == BCC2_tracker)
+            //Qnd faço xxxx^xxxx dá sempre 0. Logo se BCC2_tracker for 0, então está correto
+            if (BCC2_tracker == 0)
             {
                 frame_number_to_receive == 0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
@@ -382,8 +385,8 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 bufSend[2] = frame_number_to_receive == RR0 ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
 
                 int bytes = write(fd, bufSend, 5);
-                printf("REJ frame sent. %d bytes written\n", bytes);
-                printf("Frame number waiting to receive: %d\n", frame_number_to_receive);
+                printf("\tREJ frame sent. %d bytes written\n", bytes);
+                printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
             }
             
         }
