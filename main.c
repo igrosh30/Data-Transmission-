@@ -27,8 +27,13 @@ int main(int argc, char *argv[]){
     }else{
         int fd = llopen(serialPortName, isTransmitter);
         char data[MAX_SIZE] = {0};
-        int error = llread(fd, data, MAX_SIZE);
-        printf("%d\n", error);
+        int bytes_read = llread(fd, data, MAX_SIZE);
+        if(bytes_read < 0){
+            printf("\tError llread\n");
+            return -1;
+        }
+        printf("bytes_read: %d\n", bytes_read);
+        
         printf("Data received: %s\n", data);
         llclose(fd, isTransmitter);
         

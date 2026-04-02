@@ -131,7 +131,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
 */
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
-    printf("\tllwrite\n");
+    printf("llwrite\n");
     printf("\tfd : %d\nbuf : %p \nbufSiez: %d\n", fd, buf, bufSize);
     if (fd < 0 || buf == NULL || bufSize <= 0) return -1;
 
@@ -420,6 +420,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
  */
 int llclose(int fd, bool isTransmitter)
 {
+    printf("llclose\n");
    
     if(isTransmitter){
         int er = send_C_N_wait_C(fd, DISC, DISC);
