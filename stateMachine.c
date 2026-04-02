@@ -86,6 +86,8 @@ bool isValidControlByte(uint8_t byte) {
         case REJ0:
         case REJ1:
         case DISC:
+        case IF0:
+        case IF1:
             return true;
         default:
             return false;
