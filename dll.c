@@ -119,7 +119,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         
     }
 
-    printf("\t\tllopen completed successfully\n");
+    printf("\tllopen completed successfully\n\n");
     frame_number_to_receive = RR0; //inicializar esta variável no início
     return fd;  
 }
@@ -695,7 +695,7 @@ int setup_termios(int fd)
         return -1;
     }
 
-    printf("New termios structure set\n");
+    printf("\tNew termios structure set\n");
     return 0;
 }
 
