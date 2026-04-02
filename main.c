@@ -23,12 +23,14 @@ int main(int argc, char *argv[]){
         unsigned char data [] = "Hello";
         int error = llwrite(fd, data, sizeof(data));
         printf("%d\n", error);
+        llclose(fd, isTransmitter);
     }else{
         int fd = llopen(serialPortName, isTransmitter);
         char data[MAX_SIZE] = {0};
         int error = llread(fd, data, MAX_SIZE);
         printf("%d\n", error);
         printf("Data received: %s\n", data);
+        llclose(fd, isTransmitter);
         
     }
 
