@@ -153,6 +153,13 @@ STATE updateIFrame(uint8_t byte, STATE st)
         case BCC_OK:
             if(byte == FLAG){
                 st = STOP;
+            }else{
+                st = DATA;
+            }
+            break;
+        case DATA:
+            if(byte == FLAG){
+                st = STOP;
             }
             break;
     }   
