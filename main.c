@@ -28,7 +28,8 @@ int main(int argc, char *argv[]){
         char data[MAX_SIZE] = {0};
         int error = llread(fd, data, MAX_SIZE);
         printf("%d\n", error);
-
+        printf("Data received: %s\n", data);
+        
     }
 
     return 0;

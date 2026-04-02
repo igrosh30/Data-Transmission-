@@ -32,7 +32,7 @@ struct linkLayer {
 
 int setup_termios(int fd);
 
-int llclose(int fd);
+int llclose(int fd, bool isTransmitter);
 
 int llwrite(int fd, const unsigned char *buf, int bufSize);
 
@@ -43,6 +43,8 @@ int llread(int fd, char* buf, uint16_t size_buf);
 int wait_SET(int fd);
 
 int send_set_N_wait_UA(int fd);
+int send_disc_N_wait_DISC(int fd);
+int wait_DISC(int fd);
 
 int send_UA(int fd);
 

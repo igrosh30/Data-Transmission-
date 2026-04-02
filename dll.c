@@ -420,9 +420,36 @@ int llread(int fd, char* buf, uint16_t size_buf){
 » sends UA frame
 » closes serial port
 */
-int llclose(int fd)
+int llclose(int fd, bool isTransmitter)
 {
    
+    if(isTransmitter){
+        int er = send_disc_N_wait_DISC(fd);
+        send_UA(fd);
+    }else{
+        wait_DISC(fd);
+    }
+
+    sleep(1); 
+
+    
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
+    {
+        perror("tcsetattr");
+        return -1;
+    }
+
+    close(fd);
+    printf("Serial port closed cleanly.\n");
+    
+
+    //return (disc_received ? 1 : -1);
+    return 0;
+
+}
+
+
+int send_disc_N_wait_DISC(int fd){
     unsigned char discFrame[5] = {
         FLAG,
         TRANSMITER,
@@ -460,6 +487,7 @@ int llclose(int fd)
                 {
                     alarm(0); 
                     disc_received = 1;
+                    return 0;
                 }
                 else
                 {
@@ -468,38 +496,54 @@ int llclose(int fd)
             } 
         } 
     }
+    alarm(0);
 
-    if (!disc_received) {
-        printf("Error: Failed to receive DISC from receiver after 3 retries.\n");
-    }
+    return -1;
 
-    
-    unsigned char uaFrame[5] = {
-        FLAG,
-        TRANSMITER, 
-        UA,                   
-        TRANSMITER ^ UA,
-        FLAG
-    };
-
-    write(fd, uaFrame, 5);
-    printf("Sent final UA frame.\n");
-
-    sleep(1); 
-
-    
-    if (tcsetattr(fd, TCSANOW, &oldtio) == -1)
-    {
-        perror("tcsetattr");
-        return -1;
-    }
-
-    close(fd);
-    printf("Serial port closed cleanly.\n");
-    
-
-    return (disc_received ? 1 : -1);
 }
+
+
+
+
+int wait_DISC(int fd){
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    STATE current_state = STATE_START;
+    int disc_received = 0; 
+    while (alarmCount < 4 && current_state != STOP)
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(3);
+            alarmEnabled = TRUE;
+        }
+
+        uint8_t byte = 0;
+        if(read(fd, &byte, 1) > 0)
+        {
+            current_state = updateSupervisionFrame(byte, current_state, true);
+            
+            if(current_state == STOP)
+            {
+                if(received_control_byte == DISC)
+                {
+                    alarm(0); 
+                    disc_received = 1;
+                    return 0;
+                }
+                else
+                {
+                    current_state = STATE_START; 
+                }
+            } 
+        } 
+    }
+    alarm(0);
+    return -1;
+}
+
+
+
+
 
 int setup_termios(int fd)
 {
