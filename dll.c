@@ -324,8 +324,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 bufCounter--; //remover o 0x7d do buffer
                 BCC2_tracker = BCC2_tracker ^ 0x7d; //remover o efeito do 0x7d no BCC2 
                 byte = 0x7e;
-            }
-            if(byte == 0x5d && buf[bufCounter - 1] == 0x7d) //escape destuffed
+            }else if(byte == 0x5d && buf[bufCounter - 1] == 0x7d) //escape destuffed
             {
                 //0x7d
                 bufCounter--; //remover o 0x7d do buffer
