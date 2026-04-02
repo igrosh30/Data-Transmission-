@@ -36,10 +36,15 @@ int llclose(int fd);
 
 int llwrite(int fd, const unsigned char *buf, int bufSize);
 
-int llopen(int argc, char *argv[]);
+int llopen(const char serialPortName[], bool isTransmitter);
 
 int llread(int fd, char* buf);
 
+int wait_SET(int fd);
+
+int send_set_N_wait_UA(int fd);
+
+int send_UA(int fd);
 
 
 

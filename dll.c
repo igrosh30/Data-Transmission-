@@ -27,23 +27,8 @@ llopen
 » returns success or failure*/
 //NOTE: int argc char *argv -> this will be called passing in main! for the appLication layer! 
 //FINAL FUNCION: int llopen(int porta, TRANSMITTER | RECEIVER)-TRANS/RECEIVER is a flag! 
-int llopen(int argc, char *argv[])
+int llopen(const char serialPortName[], bool isTransmitter)
 {
-    //openSerialPort:
-    // Program usage: Uses either COM1 or COM2
-    const char *serialPortName = argv[1];
-
-    if (argc < 2)
-    {
-        printf("Incorrect program usage\n"
-               "Usage: %s <SerialPort>\n"
-               "Example: %s /dev/ttyS1\n",
-               argv[0],
-               argv[0]);
-        exit(1);
-        return 1;
-    }
-
     // Open serial port device for reading and writing, and not as controlling tty
     // because we don't want to get killed if linenoise sends CTRL-C.
     int fd = open(serialPortName, O_RDWR | O_NOCTTY);
@@ -55,6 +40,25 @@ int llopen(int argc, char *argv[])
 
     if (setup_termios(fd) == -1) return -1; 
     
+    
+
+    setup();//setup the alarm! 
+
+    if(isTransmitter){
+        send_set_N_wait_UA(fd);
+    }else{
+        wait_SET(fd);
+        send_UA(fd);
+    }
+
+
+    //failed 
+    printf("Failed to receive UA after %d retries\n", alarmCount);
+    close(fd);
+    return -1;  
+}
+
+int send_set_N_wait_UA(int fd){
     unsigned char setFrame[5] = {
         FLAG,
         TRANSMITER,
@@ -63,28 +67,19 @@ int llopen(int argc, char *argv[])
         FLAG
     };
 
-    int bytes = write(fd, setFrame, 5);
-    printf("%d bytes written\n", bytes);
-
-    printf("Sent data... waiting\n");
-
-    setup();//setup the alarm! 
-
     unsigned char bufR[MAX_SIZE] = {0};
-    
+
     alarmCount = 0;
     alarmEnabled = FALSE;
     current_state = STATE_START;
     while (alarmCount < 4 && current_state != STOP)//read 5 bytes! 
     {
         if (alarmEnabled == FALSE) {
-            alarm(3);
+            alarm(TIMEOUT_RECEIVER);
             alarmEnabled = TRUE;
 
-            if (alarmCount > 0) { 
-                write(fd, setFrame, 5);
-                printf("Timeout → SET frame resent (retry %d/3)\n", alarmCount);
-            }
+            write(fd, setFrame, 5);
+            printf("Timeout → SET frame resent (retry %d/%d)\n", alarmCount, MAX_ALARM_COUNT_RX);
         }
 
         uint8_t byte = 0;
@@ -96,17 +91,63 @@ int llopen(int argc, char *argv[])
                 if(received_control_byte == UA)
                 {
                     alarm(0);
-                    return fd; 
+                    return 0; 
                 }
             } 
         } 
     }
-    //failed 
-    printf("Failed to receive UA after %d retries\n", alarmCount);
-    close(fd);
-    return -1;  
+    return -1;
 }
 
+
+int wait_SET(int fd){
+    
+
+    unsigned char bufR[MAX_SIZE] = {0};
+
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    current_state = STATE_START;
+    while (alarmCount < 4 && current_state != STOP)//read 5 bytes! 
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(TIMEOUT_RECEIVER);
+            alarmEnabled = TRUE;
+
+            printf("Timeout → SET frame not received yet (retry %d/%d)\n", alarmCount, MAX_ALARM_COUNT_RX);
+        }
+
+        uint8_t byte = 0;
+        if(read(fd, &byte, 1) > 0)
+        {
+            current_state = updateSupervisionFrame(byte, current_state, true);
+            if(current_state == STOP)
+            {
+                if(received_control_byte == SET)
+                {
+                    alarm(0);
+                    return 0; 
+                }
+            } 
+        } 
+    }
+    return -1;
+}
+
+
+
+int send_UA(int fd){
+    unsigned char uaFrame[5] = {
+        FLAG,
+        TRANSMITER,
+        UA,            
+        TRANSMITER ^ SET,
+        FLAG
+    };
+
+    write(fd, uaFrame, 5);
+
+}
 
 /*
  llwrite
