@@ -13,6 +13,7 @@
 
 #include "dll.h"
 
+#define DESCRIPTION 1
 #define DEBUG 1
 
 
@@ -44,7 +45,7 @@ llopen
  */
 int llopen(const char serialPortName[], bool isTransmitter)
 {
-    if (DEBUG)
+    if (DESCRIPTION)
     {
         printf("llopnen\n");
     }
@@ -58,7 +59,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         printf("\t\tError opening Serial port\n");
         return -5;
     }
-    if (DEBUG)
+    if (DESCRIPTION)
     {
         printf("\tSerial port opned.\n");
     }
@@ -68,7 +69,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         printf("\t\tError setup termios\n");
         return -6;    
     }
-    if(DEBUG){
+    if(DESCRIPTION){
         printf("\tTermios setup successfully\n");
     }
     
@@ -76,7 +77,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
         printf("\t\tError setup alarm\n");
         return -7;
     }
-    if(DEBUG){
+    if(DESCRIPTION){
         printf("\tAlarm setup successfully\n");
     }
 
@@ -87,7 +88,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
             printf("\t\tError sending SET and waiting for UA\n");
             return error;
         }
-        if (DEBUG)
+        if (DESCRIPTION)
         {
             printf("\tSET sent and UA received successfully\n");
         }
@@ -100,7 +101,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
             return error;
         }
 
-        if(DEBUG)
+        if(DESCRIPTION)
         {
             printf("\tSET frame received successfully\n");
         }
@@ -112,7 +113,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
             return error;
         }
 
-        if (DEBUG)
+        if (DESCRIPTION)
         {
             printf("\tUA frame sent successfully\n");
         }
@@ -124,92 +125,7 @@ int llopen(const char serialPortName[], bool isTransmitter)
     return fd;  
 }
 
-int send_set_N_wait_UA(int fd){
-    STATE current_state = STATE_START;
-    unsigned char setFrame[5] = {
-        FLAG,
-        TRANSMITER,
-        SET,                   
-        TRANSMITER ^ SET,
-        FLAG
-    };
 
-    unsigned char bufR[MAX_SIZE] = {0};
-
-    alarmCount = 0;
-    alarmEnabled = FALSE;
-    current_state = STATE_START;
-    while (alarmCount < 4 && current_state != STOP)//read 5 bytes! 
-    {
-        if (alarmEnabled == FALSE) {
-            alarm(TIMEOUT_RECEIVER);
-            alarmEnabled = TRUE;
-
-            write(fd, setFrame, 5);
-            printf("\tTimeout → SET frame resent (retry %d/%d)\n", alarmCount, MAX_ALARM_COUNT_RX);
-        }
-
-        uint8_t byte = 0;
-        if(read(fd, &byte, 1) > 0)
-        {
-            current_state = updateSupervisionFrame(byte, current_state, true);
-            if(current_state == STOP)
-            {
-                if(received_control_byte == UA)
-                {
-                    alarm(0);
-                    return 0; 
-                }
-            } 
-        } 
-    }
-    alarm(0);
-    printf("\tError of alarm count\n");
-    return -1;
-}
-
-
-int wait_SET(int fd){
-    
-    STATE current_state = STATE_START;
-    unsigned char bufR[MAX_SIZE] = {0};
-
-    alarmCount = 0;
-    alarmEnabled = FALSE;
-    current_state = STATE_START;
-    while (alarmCount < 4 && current_state != STOP)//read 5 bytes! 
-    {
-        if (alarmEnabled == FALSE) {
-            alarm(TIMEOUT_RECEIVER);
-            alarmEnabled = TRUE;
-
-            printf("Timeout → SET frame not received yet (retry %d/%d)\n", alarmCount, MAX_ALARM_COUNT_RX);
-        }
-
-        uint8_t byte = 0;
-        if(read(fd, &byte, 1) > 0)
-        {
-            printf("0x%x\n", byte);
-            printf("Current state: %d", current_state);
-            current_state = updateSupervisionFrame(byte, current_state, true);
-            if(current_state == STOP)
-            {
-                if(received_control_byte == SET)
-                {
-                    alarm(0);
-                    return 0; 
-                }
-            } 
-        } 
-    }
-    return -1;
-}
-
-
-
-int send_UA(int fd){
-    return send_C(fd, UA);
-}
 
 /*
  llwrite
@@ -337,6 +253,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
  * @return 
  * \n -1 -> buffer demasiado pequeno
  * \n -2 -> max retries excedida
+ * \n -4 -> buffer predefinido excedido
  * \n NUMBER OF BYTES READ -> sucesso
  */
 
@@ -366,12 +283,21 @@ int llread(int fd, char* buf, uint16_t size_buf){
         if (alarmEnabled == FALSE)
         {   
             //Request the frame que ainda não recebeu
+            //Assume-se que algures neste ciclo, bufSend (aka Control flag) é atualizada
             
             bufSend[3] = bufSend[1]^bufSend[2]; //BCC1
 
-            int bytes = write(fd, bufSend, 5);
-            printf("\tSupervision frame sent. %d bytes written\n", bytes);
-            printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
+            int bytes_written = write(fd, bufSend, 5);
+
+            if(bytes_written != 5){
+                printf("\tError writing frame to serial port\n");
+                error_msg = -2; // Error writing frame
+                break;
+            }
+
+            if(DESCRIPTION){
+                printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, TIMEOUT_RECEIVER);
+            }
 
             alarm(TIMEOUT_RECEIVER);
             alarmEnabled = TRUE;
@@ -379,11 +305,11 @@ int llread(int fd, char* buf, uint16_t size_buf){
         }
 
         if(alarmCount > MAX_ALARM_COUNT_RX){
-            error_msg = -2;
+            error_msg = -1; //max retries exceeded
             break;
         }
 
-
+        //read 
         char byte;
         int bytesRead = read(fd, &byte, 1);
         if (bytesRead == 0)
@@ -391,21 +317,30 @@ int llread(int fd, char* buf, uint16_t size_buf){
         
         //update state machine
         received_control_byte = 0;
-        printf("\tByte Received: 0x%x\n", byte);
         current_state = updateIFrame(byte, current_state);
-        printf("\t\tcurrentState: %d\n", current_state);
+        if(DEBUG){
+                printf("\tByte read: 0x%x\n", byte);
+                printf("\tCurrent state: %d\n", current_state);
+        }
         //received_control_byte é atualizado dps da função
 
         if (current_state == DATA){
 
-            if(bufCounter >= size_buf - 1 || bufCounter >= MAX_SIZE){
+            if(
+                bufCounter >= size_buf - 1 || //como eu neste momento estou a guardar o BCC antes de o rejeitar, tenho de garantir isto
+                bufCounter >= MAX_SIZE
+            )
+            {
                 printf("\tBc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, MAX_SIZE);
-                error_msg =  -4; //maior do que o buffer predefinido
+                error_msg = -4; //maior do que o buffer predefinido
                 break;
             }
+
             uint8_t byte_to_receive = frame_number_to_receive == RR0 ? IF0 : IF1;
             if(received_control_byte != byte_to_receive){
-                printf("\tA receber duplicado\n");
+                printf("\tI Frame received out of order\n");
+                printf("\t\tExpected control byte: 0x%x\n", byte_to_receive);
+                printf("\t\tReceived control byte: 0x%x\n", received_control_byte);
                 //está a receber duplicado
                 bufSend[2] = frame_number_to_receive; //send RRx
                 alarmEnabled = 0; //vai voltar a pedir aquele frame que ele queria
@@ -421,8 +356,10 @@ int llread(int fd, char* buf, uint16_t size_buf){
             }else{
                 BCC2_tracker = BCC2_tracker ^ byte;
             }
-            printf("\tBCC2_Tracker: 0x%x\n", BCC2_tracker);
-
+            if (DEBUG)
+            {
+                printf("\tBCC2_Tracker: 0x%x\n", BCC2_tracker); 
+            }
 
             //Acrescentar byte ao buffer
             buf[bufCounter] = byte;
@@ -442,6 +379,11 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 bufSend[2] = frame_number_to_receive; //send RRx
                 bufSend[3] = bufSend[1]^bufSend[2];
                 int bytes = write(fd, bufSend, 5);
+                if(bytes != 5){
+                    printf("\tError writing frame to serial port\n");
+                    error_msg = -2; // Error writing frame
+                    break;
+                }
                 printf("\tRR frame sent. %d bytes written\n", bytes);
                 printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
 
@@ -450,6 +392,11 @@ int llread(int fd, char* buf, uint16_t size_buf){
                 bufSend[2] = frame_number_to_receive; //receber o mesmo, porque não o conseguiu ler
 
                 int bytes = write(fd, bufSend, 5);
+                if(bytes != 5){
+                    printf("\tError writing frame to serial port\n");
+                    error_msg = -2; // Error writing frame
+                    break;
+                }
                 printf("\tREJ frame sent. %d bytes written\n", bytes);
                 printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
             }
@@ -463,16 +410,6 @@ int llread(int fd, char* buf, uint16_t size_buf){
     return error_msg;
 }
 
-
-
-
-/*
-» llclose
-» sends DISC frame
-» reads one byte at a time to receive DISC frame
-» sends UA frame
-» closes serial port
-*/
 
 /**
  * llclose
@@ -499,7 +436,7 @@ int llclose(int fd, bool isTransmitter)
             return er;
         }
 
-        if(DEBUG){
+        if(DESCRIPTION){
             printf("\tDISC sent and received successfully\n");
         }
 
@@ -507,7 +444,7 @@ int llclose(int fd, bool isTransmitter)
         if (er2 < 0) {
             return er2;
         }
-        if(DEBUG){
+        if(DESCRIPTION){
             printf("\tUA sent successfully\n");
         }
     }else{
@@ -625,7 +562,7 @@ int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive){
         {
             current_state = updateSupervisionFrame(byte, current_state, true);
 
-            if (DEBUG)
+            if (DESCRIPTION)
             {
                 printf("\tByte: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
@@ -681,7 +618,7 @@ int wait_C(int fd, unsigned char C_receive){
         {
             current_state = updateSupervisionFrame(byte, current_state, true);
 
-            if (DEBUG)
+            if (DESCRIPTION)
             {
                 printf("\tByte: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
