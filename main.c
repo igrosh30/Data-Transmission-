@@ -5,7 +5,7 @@ int main(int argc, char *argv[]){
     printf("Test\n\n");
 
     const char *serialPortName = argv[1];
-    const bool isTransmitter = argv[2];
+    const bool isTransmitter = argv[2][0] == '1'? 1 : 0;
 
     if (argc < 3)
     {
@@ -17,8 +17,9 @@ int main(int argc, char *argv[]){
         exit(1);
         return 1;
     }
-
+    
     if(isTransmitter){
+        printf("Hey");
         int fd = llopen(serialPortName, isTransmitter);
         char data [] = "Hello";
         llwrite(fd, data, sizeof(data));
