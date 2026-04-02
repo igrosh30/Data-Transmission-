@@ -48,6 +48,8 @@ int wait_DISC(int fd);
 
 int send_UA(int fd);
 
+int send_DISC(int fd);
 
+int wait_UA(int fd);
 
 #endif

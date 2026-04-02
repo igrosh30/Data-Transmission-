@@ -428,6 +428,9 @@ int llclose(int fd, bool isTransmitter)
         send_UA(fd);
     }else{
         wait_DISC(fd);
+        send_DISC(fd);
+        wait_UA(fd);
+        
     }
 
     sleep(1); 
@@ -446,6 +449,56 @@ int llclose(int fd, bool isTransmitter)
     //return (disc_received ? 1 : -1);
     return 0;
 
+}
+
+int wait_UA(int fd){
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    STATE current_state = STATE_START;
+    int disc_received = 0; 
+    while (alarmCount < 4 && current_state != STOP)
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(3);
+            alarmEnabled = TRUE;
+        }
+
+        uint8_t byte = 0;
+        if(read(fd, &byte, 1) > 0)
+        {
+            printf("\tByte: 0x%x\n", byte);
+            current_state = updateSupervisionFrame(byte, current_state, true);
+            printf("\tcurrent_state: %d\n", current_state);
+
+            
+            if(current_state == STOP)
+            {
+                if(received_control_byte == UA)
+                {
+                    alarm(0); 
+                    disc_received = 1;
+                    return 0;
+                }
+                else
+                {
+                    current_state = STATE_START; 
+                }
+            } 
+        } 
+    }
+    alarm(0);
+    return -1;
+}
+
+int send_DISC(int fd){
+    unsigned char discFrame[5] = {
+        FLAG,
+        TRANSMITER,
+        DISC,
+        TRANSMITER ^ DISC,
+        FLAG
+    };
+    write(fd, discFrame, 5);
 }
 
 
@@ -520,7 +573,10 @@ int wait_DISC(int fd){
         uint8_t byte = 0;
         if(read(fd, &byte, 1) > 0)
         {
+            printf("\tByte: 0x%x\n", byte);
             current_state = updateSupervisionFrame(byte, current_state, true);
+            printf("\tcurrent_state: %d\n", current_state);
+
             
             if(current_state == STOP)
             {
