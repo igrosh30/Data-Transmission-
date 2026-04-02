@@ -248,6 +248,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
             uint8_t expectedRR = (Ns == 0) ? RR1 : RR0;//receiver got message 0 - send ready for 1!
             uint8_t expectedREJ = (Ns == 0) ? REJ0 : REJ1;
             current_state = updateSupervisionFrame(byte, current_state, true);
+            printf("\tcurrent_state: %d\n", current_state);
             
             if(current_state == STOP)
             {
