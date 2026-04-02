@@ -55,47 +55,71 @@ int llopen(const char serialPortName[], bool isTransmitter)
     if (fd < 0)
     {
         perror(serialPortName);
-        printf("\tError opening Serial port\n");
+        printf("\t\tError opening Serial port\n");
         return -5;
     }
     if (DEBUG)
     {
-        printf("Serial port opned.\n");
+        printf("\tSerial port opned.\n");
     }
 
     if (setup_termios(fd) == -1)
     {
-        printf("\tError setup termios\n");
+        printf("\t\tError setup termios\n");
         return -6;    
     }
     if(DEBUG){
-        printf("Termios setup successfully\n");
+        printf("\tTermios setup successfully\n");
     }
     
     if(setup() == -1){
-        printf("\tError setup alarm\n");
+        printf("\t\tError setup alarm\n");
         return -7;
     }
     if(DEBUG){
-        printf("Alarm setup successfully\n");
+        printf("\tAlarm setup successfully\n");
     }
 
     if(isTransmitter){
         int error = send_C_N_wait_C(fd, SET, UA);
         if (error < 0)
         {
-            printf("\tError sending SET and waiting for UA\n");
+            printf("\t\tError sending SET and waiting for UA\n");
             return error;
-        }        
+        }
+        if (DEBUG)
+        {
+            printf("\tSET sent and UA received successfully\n");
+        }
+        
     }else{
-        wait_SET(fd);
-        send_UA(fd);
+        int error = wait_C(fd, SET);
+        if (error < 0)
+        {
+            printf("\t\tError waiting for SET frame\n");
+            return error;
+        }
+
+        if(DEBUG)
+        {
+            printf("\tSET frame received successfully\n");
+        }
+
+        error = send_C(fd, UA);
+        if (error < 0)
+        {
+            printf("\t\tError sending UA frame\n");
+            return error;
+        }
+
+        if (DEBUG)
+        {
+            printf("\tUA frame sent successfully\n");
+        }
+        
     }
 
-    printf("\tDone\n");
-    //failed 
-    //printf("Failed to receive UA after %d retries\n", alarmCount);
-    //close(fd);
+    printf("\t\tllopen completed successfully\n");
     frame_number_to_receive = RR0; //inicializar esta variável no início
     return fd;  
 }
@@ -803,4 +827,26 @@ int wait_C(int fd, unsigned char C_receive){
     alarm(0);
 
     return error;
+}
+
+/**
+ * send_C
+ * @return
+ * \n -2 -> error writing frame
+ * \n 0 -> success
+ */
+int send_C(int fd, unsigned char C_send){
+    unsigned char sendFrame[5] = {
+        FLAG,
+        TRANSMITER,
+        C_send,
+        TRANSMITER ^ C_send,
+        FLAG
+    };
+    int bytes_written = write(fd, sendFrame, 5);
+    if (bytes_written != 5) {
+        printf("\t\tError writing frame to serial port\n");
+        return -2; // Error writing frame
+    }
+    return bytes_written;
 }
