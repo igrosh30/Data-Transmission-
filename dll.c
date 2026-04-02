@@ -170,7 +170,7 @@ int send_UA(int fd){
 */
 int llwrite(int fd, const unsigned char *buf, int bufSize)
 {
-    printf("fd : %d\n buf : %d \n bufSiez: %d", fd, buf, bufSize);
+    printf("fd : %d\n buf : %p \n bufSiez: %d\n", fd, buf, bufSize);
     if (fd < 0 || buf == NULL || bufSize <= 0) return -1;
 
     static int Ns = 0;
@@ -334,6 +334,7 @@ int llread(int fd, char* buf){
         //update state machine
         received_control_byte = 0;
         currentState = updateIFrame(byte, currentState);
+        printf("\tcurrentState: %d\n", current_state);
         //received_control_byte é atualizado dps da função
 
         if (currentState == BCC_OK){
