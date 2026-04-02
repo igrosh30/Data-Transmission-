@@ -53,8 +53,8 @@ int llopen(const char serialPortName[], bool isTransmitter)
 
     printf("Done");
     //failed 
-    printf("Failed to receive UA after %d retries\n", alarmCount);
-    close(fd);
+    //printf("Failed to receive UA after %d retries\n", alarmCount);
+    //close(fd);
     return -1;  
 }
 
