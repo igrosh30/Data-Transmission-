@@ -1,38 +1,18 @@
-#ifndef TX_DATALINK_H
-#define TX_DATALINK_H
-
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <termios.h>
-#include <unistd.h>
-#include "alarm_sigaction.h" 
-#include "stateMachine.h"
-
-
-#define MAX_SIZE 256
-#define BAUDRATE B38400
-
-struct termios oldtio;
-STATE current_state = STATE_START;
-
+#include "tx_datalink.h"
 //static int serial_fd = -1;
 
+
+/*
+FROM SLIDES! 
 struct linkLayer {
-    char port[20]; /*Device /dev/ttySx, x = 0, 1*/
-    int baudRate; /*Speed of the transmission*/
-    unsigned int sequenceNumber; /*Frame sequence number: 0, 1*/
-    unsigned int timeout; /*Timer value: 1 s*/
-    unsigned int numTransmissions; /*Number of retries in case of failure*/
-    char frame[MAX_SIZE]; /*Frame*/
+    char port[20];
+    int baudRate; 
+    unsigned int sequenceNumber;
+    unsigned int timeout; 
+    unsigned int numTransmissions; 
+    char frame[MAX_SIZE]; 
 };
-
-
-
-int setup_termios(int fd);
+*/
 
 /*
 llopen
@@ -42,7 +22,92 @@ llopen
 » returns success or failure*/
 //NOTE: int argc char *argv -> this will be called passing in main! for the appLication layer! 
 //FINAL FUNCION: int llopen(int porta, TRANSMITTER | RECEIVER)-TRANS/RECEIVER is a flag! 
-int llopen(int argc, char *argv[])
+int llopen(int porta, int role)
+{
+    
+    if (role != TRANSMITER) {
+        printf("ERROR: tx_datalink only supports TRANSMITER role\n");
+        return -1;
+    }
+
+    
+    //Maping para o nome da porta! ver isto! - unica coisa que muda!
+    char serialPortName[20];
+    if (porta == 0) {
+        strcpy(serialPortName, "/dev/ttyS0");
+    } else if (porta == 1) {
+        strcpy(serialPortName, "/dev/ttyS1");
+    } else {
+        printf("ERROR: Invalid porta %d. Use 0 for /dev/ttyS0 or 1 for /dev/ttyS1\n", porta);
+        return -1;
+    }
+
+    
+    int fd = open(serialPortName, O_RDWR | O_NOCTTY);
+    if (fd < 0)
+    {
+        perror(serialPortName);
+        return -2;
+    }
+
+    if (setup_termios(fd) == -1) return -3; 
+    
+    unsigned char setFrame[5] = {
+        FLAG,
+        TRANSMITER,
+        SET,                   
+        TRANSMITER ^ SET,
+        FLAG
+    };
+
+    int bytes = write(fd, setFrame, 5);
+    printf("%d bytes written\n", bytes);
+
+    printf("Sent SET frame... waiting for UA\n");
+
+    setup(); // setup the alarm!
+
+    unsigned char bufR[MAX_SIZE] = {0};
+    
+    alarmCount = 0;
+    alarmEnabled = FALSE;
+    current_state = STATE_START;
+
+    while (alarmCount < 4 && current_state != STOP)
+    {
+        if (alarmEnabled == FALSE) {
+            alarm(3);
+            alarmEnabled = TRUE;
+
+            if (alarmCount > 0) { 
+                write(fd, setFrame, 5);
+                printf("Timeout → SET frame resent (retry %d/3)\n", alarmCount);
+            }
+        }
+
+        uint8_t byte = 0;
+        if (read(fd, &byte, 1) > 0)
+        {
+            current_state = updateSupervisionFrame(byte, current_state, true);
+            if (current_state == STOP)
+            {
+                if (received_control_byte == UA)
+                {
+                    alarm(0);
+                    printf("UA received -> connection established!\n");
+                    return fd; 
+                }
+            } 
+        } 
+    }
+
+    // failed 
+    printf("Failed to receive UA after %d retries\n", alarmCount);
+    close(fd);
+    return -1;  
+}
+
+int llopen1(int argc, char *argv[])
 {
     //openSerialPort:
     // Program usage: Uses either COM1 or COM2
@@ -372,5 +437,3 @@ int setup_termios(int fd)
     return 0;
 }
 
-
-#endif
