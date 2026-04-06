@@ -291,6 +291,8 @@ int llread(int fd, char* buf, uint16_t size_buf){
     alarmCount = 0; //global variable
     
     int error_msg = 0;
+    
+    received_control_byte = 0;
     while (1)
     {
         if (alarmEnabled == FALSE)
@@ -315,6 +317,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
             alarm(linkLayer.timeout);
             alarmEnabled = TRUE;
             current_state = STATE_START;
+            received_control_byte = 0;
         }
 
         if(alarmCount > MAX_ALARM_COUNT_RX){
@@ -329,13 +332,14 @@ int llread(int fd, char* buf, uint16_t size_buf){
             continue;
         
         //update state machine
-        received_control_byte = 0;
         current_state = updateIFrame(byte, current_state);
         if(DEBUG){
                 printf("\tByte read: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
         }
         //received_control_byte é atualizado dps da função
+        printf("received_control_byte: %x\n", received_control_byte);
+        printf("current state: %d\n", current_state);
 
         if (current_state == DATA){
             //destuffing e guardar no buffer
@@ -398,7 +402,9 @@ int llread(int fd, char* buf, uint16_t size_buf){
             //Qnd faço xxxx^xxxx dá sempre 0. Logo se BCC2_tracker for 0, então está correto
             if (BCC2_tracker == 0)
             {
-                frame_number_to_receive = RR0 ? RR1 : RR0;
+                
+                
+                frame_number_to_receive = frame_number_to_receive == RR0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
                 error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
 
@@ -412,7 +418,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
                     break;
                 }
                 printf("\tRR frame sent. %d bytes written\n", bytes);
-                printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive);
+                printf("\tFrame number waiting to receive: %d\n", frame_number_to_receive == RR0 ? 0 : 1);
 
                 break;
             }else{
