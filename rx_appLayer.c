@@ -10,7 +10,7 @@ void receiveFileSerialLink(const char *serialPortName, const char *filename,
                         int baudRate, int nTries, int timeout)
 { 
     FILE *file = NULL;
-    file = fopen(filename, "rb");
+    file = fopen(filename, "wb");
     if (!file) {
         perror("fopen");
         return;                     
