@@ -50,7 +50,7 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
     }
 
     //all ok, let's send the data! 
-    #define MAX_DATA_SIZE 550
+    #define MAX_DATA_SIZE 900
     unsigned char dataBuf[MAX_DATA_SIZE];
     size_t bytesRead;
 
