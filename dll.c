@@ -334,7 +334,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
         
         //update state machine
         current_state = updateIFrame(byte, current_state);
-        if(1){
+        if(DEBUG){
                 printf("\tByte read: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
         }
