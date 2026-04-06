@@ -318,6 +318,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
             alarmEnabled = TRUE;
             current_state = STATE_START;
             received_control_byte = 0;
+            bufCounter = 0;
         }
 
         if(alarmCount > MAX_ALARM_COUNT_RX){
@@ -333,13 +334,13 @@ int llread(int fd, char* buf, uint16_t size_buf){
         
         //update state machine
         current_state = updateIFrame(byte, current_state);
-        if(DEBUG){
+        if(1){
                 printf("\tByte read: 0x%x\n", byte);
                 printf("\tCurrent state: %d\n", current_state);
         }
         //received_control_byte é atualizado dps da função
         printf("received_control_byte: %x\n", received_control_byte);
-        printf("current state: %d\n", current_state);
+        //printf("current state: %d\n", current_state);
 
         if (current_state == DATA){
             //destuffing e guardar no buffer
@@ -363,8 +364,11 @@ int llread(int fd, char* buf, uint16_t size_buf){
             )
             {
                 printf("\tBc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, MAX_SIZE);
-                error_msg = -4; //maior do que o buffer predefinido
-                break;
+                bufSend[2] = (frame_number_to_receive == RR0) ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
+                alarmEnabled = 0;
+                //error_msg = -4; //maior do que o buffer predefinido
+                //break;
+
             }
 
             uint8_t byte_to_receive = frame_number_to_receive == RR0 ? IF0 : IF1;
@@ -402,8 +406,6 @@ int llread(int fd, char* buf, uint16_t size_buf){
             //Qnd faço xxxx^xxxx dá sempre 0. Logo se BCC2_tracker for 0, então está correto
             if (BCC2_tracker == 0)
             {
-                
-                
                 frame_number_to_receive = frame_number_to_receive == RR0 ? RR1 : RR0;
                 bufCounter--; //BCC2 não é uma "data"
                 error_msg = bufCounter; //está à trolha mas é só pra poder retornar este valor
@@ -422,8 +424,10 @@ int llread(int fd, char* buf, uint16_t size_buf){
 
                 break;
             }else{
-                bufSend[2] = frame_number_to_receive; //receber o mesmo, porque não o conseguiu ler
+                bufSend[2] = (frame_number_to_receive == RR0) ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
+                bufSend[3] = bufSend[1]^bufSend[2];
 
+                alarmEnabled = FALSE;
                 int bytes = write(fd, bufSend, 5);
                 if(bytes != 5){
                     printf("\tError writing frame to serial port\n");
