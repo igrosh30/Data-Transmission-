@@ -3,7 +3,7 @@
 2- we are passing the role- this means ti should he same file for both! 
 
 */
-#include "tx_appLayer.h"
+#include "rx_appLayer.h"
 
 
 void receiveFileSerialLink(const char *serialPortName, const char *filename, 
