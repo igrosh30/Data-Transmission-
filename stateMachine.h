@@ -7,7 +7,7 @@
 #include "Config.h"
 
 
-uint8_t received_control_byte;
+extern uint8_t received_control_byte;
 
 typedef enum{
     STATE_START,
@@ -15,11 +15,13 @@ typedef enum{
     A_RCV,
     C_RCV,
     BCC_OK,
-    STOP
+    STOP,
+    DATA
 }STATE;
 
 void init();
 STATE updateSupervisionFrame(uint8_t byte, STATE st,bool isTx);
+STATE updateIFrame(uint8_t byte, STATE st);
 bool isValidControlByte(uint8_t byte);
 
 #endif

@@ -7,11 +7,9 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdint.h>   
-#include "dll.h"
+#include "tx_datalink.h"
 
-#define isTRANSMITER 1
-
-void sendFileSerialLink(int porta, const char *filename, 
+void receiveFileSerialLink(int porta, const char *filename, 
                         int baudRate, int nTries, int timeout);
 
 

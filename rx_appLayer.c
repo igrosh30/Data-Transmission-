@@ -6,7 +6,7 @@
 #include "tx_appLayer.h"
 
 
-void sendFileSerialLink(char *argv[], const char *filename, 
+void receiveFileSerialLink(int porta, const char *filename, 
                         int baudRate, int nTries, int timeout)
 { 
     FILE *file = NULL;
@@ -26,10 +26,9 @@ void sendFileSerialLink(char *argv[], const char *filename,
     }
     printf("File opened successfully - size = %ld bytes\n", fileSize);
 
-    int fd = llopen(argv, isTRANSMITER);  
+    int fd = llopen(porta, TRANSMITER);  
 
-    if (fd < 0) 
-    {
+    if (fd < 0) {
         printf("ERROR: %d\n",fd);
         goto end;
     }
@@ -63,7 +62,7 @@ void sendFileSerialLink(char *argv[], const char *filename,
     else printf("END packet sent successfully\n");
 
 end:
-    if (fd >= 0)      llclose(fd, isTRANSMITER);
+    if (fd >= 0)      llclose(fd);
     if (file != NULL) fclose(file);
     printf("=== File transfer finished ===\n");
     
