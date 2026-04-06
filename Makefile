@@ -1,6 +1,5 @@
 # Compiler and Flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g
 
 # Target executable name
 TARGET = main
