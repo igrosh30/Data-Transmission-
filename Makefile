@@ -1,0 +1,1 @@
+gcc main.c -o main dll.c stateMachine.c rx_appLayer.c tx_appLayer.c alarm_sigaction.c 
