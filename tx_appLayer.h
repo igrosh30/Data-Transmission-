@@ -11,7 +11,7 @@
 
 #define isTRANSMITER 1
 
-void sendFileSerialLink(int porta, const char *filename, 
+void sendFileSerialLink(char *argv[], const char *filename, 
                         int baudRate, int nTries, int timeout);
 
 
