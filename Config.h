@@ -29,6 +29,14 @@ typedef enum{
 }CONTROL;
 
 
+
+typedef struct {
+    uint8_t baudrate;
+    uint8_t timeout;
+    uint8_t numTries;
+} DLLConfig;
+
+
 /*
 • A (Address) to distinguish whether the frame is a command or a reply
 • C (Control) to distinguish between the different types of supervision
