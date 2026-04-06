@@ -9,6 +9,7 @@
 void sendFileSerialLink(int porta, const char *filename, 
                         int baudRate, int nTries, int timeout)
 { 
+
     FILE *file = NULL;
     file = fopen(filename, "rb");
     if (!file) {
@@ -26,7 +27,7 @@ void sendFileSerialLink(int porta, const char *filename,
     }
     printf("File opened successfully - size = %ld bytes\n", fileSize);
 
-    int fd = llopen(porta, TRANSMITER);  
+    int fd = llopen(porta, TRANSMITER);
 
     if (fd < 0) {
         printf("ERROR: %d\n",fd);
