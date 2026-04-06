@@ -41,7 +41,7 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
     printf("Connection established (fd = %d)\n", fd);
 
     //ALL ok, let's build start packet! 
-    unsigned char packet[512];
+    unsigned char packet[1024];
     int len = buildControlPacket(2,packet, filename, fileSize);
     int res_start = llwrite(fd, packet, len);
     if ( res_start < 0) {
@@ -50,14 +50,16 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
     }
 
     //all ok, let's send the data! 
-    #define MAX_DATA_SIZE 200
+    #define MAX_DATA_SIZE 550
     unsigned char dataBuf[MAX_DATA_SIZE];
     size_t bytesRead;
 
     while ((bytesRead = fread(dataBuf, 1, MAX_DATA_SIZE, file)) > 0) {
         len = buildDataPacket(packet, dataBuf, (int)bytesRead);
         int res_data = llwrite(fd, packet, len);
+        
         if ( res_data < 0) {
+            printf("res_data: %d\n",res_data);
             printf("ERROR sending DATA packet - aborting: %d\n", res_data);
             goto end;
         }

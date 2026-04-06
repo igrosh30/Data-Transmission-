@@ -161,7 +161,9 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
     
     for (int i = 0; i < bufSize; i++) bcc2 ^= buf[i];
 
-    unsigned char stuffed[MAX_SIZE * 2];
+    if(bufSize > DLL_MAX_SIZE) return -9;
+    unsigned char stuffed[DLL_MAX_SIZE * 2];
+
     int stuffedLen = 0;
 
     for (int i = 0; i < bufSize; i++) {
@@ -183,7 +185,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 
 
     //BUILD THE I FRAME FIRST! 
-    unsigned char I_frame[MAX_SIZE * 2 + 10];
+    unsigned char I_frame[DLL_MAX_SIZE * 2 + 10];
     int frameLen = 0;
 
     uint8_t C    = (Ns == 0) ? 0x00 : 0x40;
@@ -205,7 +207,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
     I_frame[frameLen++] = FLAG;
 
     int bytes_write = write(fd,I_frame,frameLen);
-    if (bytes_write != frameLen) return -1;
+    if (bytes_write != frameLen) return -7;
 
     alarmCount = 0;
     alarmEnabled = FALSE;
@@ -227,11 +229,11 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         
         if(read(fd, &byte, 1) > 0)
         {
-            printf("Bytes Received: 0x%x\n", byte);
+            //printf("Bytes Received: 0x%x\n", byte);
             uint8_t expectedRR = (Ns == 0) ? RR1 : RR0;//receiver got message 0 - send ready for 1!
             uint8_t expectedREJ = (Ns == 0) ? REJ0 : REJ1;
             current_state = updateSupervisionFrame(byte, current_state, true);
-            printf("\tcurrent_state: %d\n", current_state);
+            //printf("\tcurrent_state: %d\n", current_state);
             
             if(current_state == STOP)
             {
@@ -255,7 +257,7 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
         } 
     }
     
-    if(alarmCount >= 4) return -1; //Error message!
+    if(alarmCount >= 4) return -2; //Error message!
 
 }
 
@@ -360,10 +362,10 @@ int llread(int fd, char* buf, uint16_t size_buf){
 
             if(
                 bufCounter >= size_buf - 1 || //como eu neste momento estou a guardar o BCC antes de o rejeitar, tenho de garantir isto
-                bufCounter >= MAX_SIZE
+                bufCounter >= DLL_MAX_SIZE
             )
             {
-                printf("\tBc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, MAX_SIZE);
+                printf("\tBc: %d\nsize_buf: %d\n MAX: %d", bufCounter, size_buf, DLL_MAX_SIZE);
                 bufSend[2] = (frame_number_to_receive == RR0) ? REJ0 : REJ1; //receber o mesmo, porque não o conseguiu ler
                 alarmEnabled = 0;
                 //error_msg = -4; //maior do que o buffer predefinido

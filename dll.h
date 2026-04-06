@@ -12,7 +12,9 @@
 #include "alarm_sigaction.h" 
 #include "stateMachine.h"
 
-#define MAX_SIZE 256
+#define DLL_MAX_SIZE 2048//alterar aqui! 
+//#define MAX_DATA_SIZE (DLL_MAX_SIZE - 10)
+
 #define BAUDRATE B38400
 
 
@@ -26,7 +28,7 @@ struct linkLayer {
     unsigned int sequenceNumber; /*Frame sequence number: 0, 1*/
     unsigned int timeout; /*Timer value: 1 s*/
     unsigned int numTransmissions; /*Number of retries in case of failure*/
-    char frame[MAX_SIZE]; /*Frame*/
+    char frame[DLL_MAX_SIZE]; /*Frame*/
 };
 
 int setup_termios(int fd);
