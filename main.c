@@ -20,9 +20,9 @@ int main(int argc, char *argv[]){
     }
 
     if(isTransmitter){
-        sendFileSerialLink(serialPortName, "file_to_send.txt", BAUDRATE, 3, 3);
+        sendFileSerialLink(serialPortName, "penguin.gif", BAUDRATE, 3, 3);
     }else{
-        receiveFileSerialLink(serialPortName, "file_to_receive.txt", BAUDRATE, 3, 3);
+        receiveFileSerialLink(serialPortName, "file_to_receive.gif", BAUDRATE, 3, 3);
     }
 
 
