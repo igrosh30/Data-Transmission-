@@ -88,7 +88,7 @@ void receiveFileSerialLink(const char *serialPortName, const char *filename,
     }
     printf("Connection established (fd = %d)\n", fd);
 
-    unsigned char packet[512];
+    unsigned char packet[DLL_MAX_SIZE];
     bool transferStarted = false;
     long expectedSize = 0;
     char receivedName[256] = {0};
