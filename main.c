@@ -1,6 +1,5 @@
-#include "dll.h"
 #include "rx_appLayer.h"
-//#include "tx_appLayer.h"
+#include "tx_appLayer.h"
 
 
 int main(int argc, char *argv[]){
@@ -23,7 +22,7 @@ int main(int argc, char *argv[]){
     if(isTransmitter){
         sendFileSerialLink(serialPortName, "file_to_send.txt", BAUDRATE, 3, 3);
     }else{
-        receiveFileSerialLink(serialPortName);
+        receiveFileSerialLink(serialPortName, "file_to_receive.txt", BAUDRATE, 3, 3);
     }
 
 
