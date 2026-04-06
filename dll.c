@@ -16,6 +16,7 @@
 #define DESCRIPTION 1
 #define DEBUG 0
 
+struct linkLayer linkLayer;
 
 struct termios oldtio;
 

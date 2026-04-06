@@ -27,7 +27,8 @@ struct linkLayer {
     unsigned int timeout; /*Timer value: 1 s*/
     unsigned int numTransmissions; /*Number of retries in case of failure*/
     char frame[MAX_SIZE]; /*Frame*/
-} linkLayer;
+};
+
 int setup_termios(int fd);
 
 int llclose(int fd, bool isTransmitter);
