@@ -7,9 +7,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdint.h>   
-#include "tx_datalink.h"
+#include "dll.h"
 
-void receiveFileSerialLink(int porta, const char *filename, 
+
+void receiveFileSerialLink(const char *serialPortName, const char *filename, 
                         int baudRate, int nTries, int timeout);
 
 

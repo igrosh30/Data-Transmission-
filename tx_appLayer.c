@@ -6,7 +6,7 @@
 #include "tx_appLayer.h"
 
 
-void sendFileSerialLink(char *argv[], const char *filename, 
+void sendFileSerialLink(const char *serialPortName, const char *filename, 
                         int baudRate, int nTries, int timeout)
 { 
     FILE *file = NULL;
@@ -26,7 +26,12 @@ void sendFileSerialLink(char *argv[], const char *filename,
     }
     printf("File opened successfully - size = %ld bytes\n", fileSize);
 
-    int fd = llopen(argv, isTRANSMITER);  
+    DLLConfig config;
+    config.baudrate = baudRate;
+    config.timeout = timeout;
+    config.numTries = nTries;
+
+    int fd = llopen(serialPortName, isTRANSMITER, &config);  
 
     if (fd < 0) 
     {
