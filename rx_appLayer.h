@@ -10,7 +10,7 @@
 #include "dll.h"
 
 
-void receiveFileSerialLink(const char *serialPortName, const char *filename, 
+void receiveFileSerialLink(const char *serialPortName, char *filename, 
                         int baudRate, int nTries, int timeout);
 
 
