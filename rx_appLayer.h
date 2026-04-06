@@ -1,5 +1,5 @@
-#ifndef TX_APPLAYER_H
-#define TX_APPLAYER_H
+#ifndef RX_APPLAYER_H
+#define RX_APPLAYER_H
 
 #include <stdio.h>
 #include <stdlib.h>
