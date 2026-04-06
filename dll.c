@@ -33,14 +33,34 @@ uint8_t frame_number_to_receive;
  * \n -5 -> error opening serial port
  * \n -6 -> error setting termios
  * \n -7 -> error setting alarm
+ * \n -8 -> no config provided
  */
-int llopen(const char serialPortName[], bool isTransmitter)
+int llopen(const char serialPortName[], bool isTransmitter, DLLConfig *config)
 {
     if (DESCRIPTION)
     {
         printf("llopnen\n");
     }
     
+    //Verifications on config values
+    if(config == NULL){
+        printf("\tNo config provided, using default values.\n");
+        return -8; //no config provided
+    }
+    
+    if (DESCRIPTION)
+    {
+        printf("\tConfig provided:\n");
+        printf("\t\tBaudrate: %d\n", config->baudrate);
+        printf("\t\tTimeout: %d\n", config->timeout);
+        printf("\t\tNumTries: %d\n", config->numTries);
+    }
+    linkLayer.baudRate = config->baudrate;
+    linkLayer.timeout = config->timeout;
+    linkLayer.numTransmissions = config->numTries;
+
+
+
     // Open serial port device for reading and writing, and not as controlling tty
     // because we don't want to get killed if linenoise sends CTRL-C.
     int fd = open(serialPortName, O_RDWR | O_NOCTTY);
@@ -239,7 +259,6 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
 }
 
 
-
 /**
  * Pelo que percebi, esta função lê uma frame I apenas, e retorna para a application layer. A application layer é que tem de ir
  * chamando várias vezes esta função para isso acontecer
@@ -267,7 +286,7 @@ int llread(int fd, char* buf, uint16_t size_buf){
     uint8_t BCC2_tracker = 0;
 
     alarmEnabled = 1; //global variable -> tem de começar a 1!!!!
-    alarm(TIMEOUT_RECEIVER); //Eu faço isto assim que é para a lógica do loop não ter de ter uma exceção para o primeiro caso
+    alarm(linkLayer.timeout); //Eu faço isto assim que é para a lógica do loop não ter de ter uma exceção para o primeiro caso
     alarmCount = 0; //global variable
     
     int error_msg = 0;
@@ -289,10 +308,10 @@ int llread(int fd, char* buf, uint16_t size_buf){
             }
 
             if(DESCRIPTION){
-                printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, TIMEOUT_RECEIVER);
+                printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, linkLayer.timeout);
             }
 
-            alarm(TIMEOUT_RECEIVER);
+            alarm(linkLayer.timeout);
             alarmEnabled = TRUE;
             current_state = STATE_START;
         }
@@ -548,7 +567,7 @@ int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive){
     while (1)
     {
         if (alarmEnabled == FALSE) {
-            alarm(TIMEOUT_RECEIVER);
+            alarm(linkLayer.timeout);
             alarmEnabled = TRUE;
 
             int bytes_written = write(fd, sendFrame, 5);
@@ -558,7 +577,7 @@ int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive){
                 break;
             }
             if (alarmCount > 0) { 
-                printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, TIMEOUT_RECEIVER);
+                printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, linkLayer.timeout);
             } else {
                 printf("\tSent frame... waiting for Receiver's response.\n");
             }
@@ -613,10 +632,10 @@ int wait_C(int fd, unsigned char C_receive){
     while (1)
     {
         if (alarmEnabled == FALSE) {
-            alarm(TIMEOUT_RECEIVER);
+            alarm(linkLayer.timeout);
             alarmEnabled = TRUE;
 
-            printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, TIMEOUT_RECEIVER);
+            printf("\tTimeout -> Frame resent (retry %d/%d)\n", alarmCount, linkLayer.timeout);
 
         }
 
