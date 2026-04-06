@@ -1,4 +1,6 @@
 #include "dll.h"
+#include "rx_appLayer.h"
+//#include "tx_appLayer.h"
 
 
 int main(int argc, char *argv[]){
@@ -19,25 +21,11 @@ int main(int argc, char *argv[]){
     }
 
     if(isTransmitter){
-        int fd = llopen(serialPortName, isTransmitter);
-        unsigned char data [] = "}H~ello World!";
-        int error = llwrite(fd, data, sizeof(data));
-        printf("%d\n", error);
-        llclose(fd, isTransmitter);
+        sendFileSerialLink(serialPortName, "file_to_send.txt", BAUDRATE, 3, 3);
     }else{
-        int fd = llopen(serialPortName, isTransmitter);
-        char data[MAX_SIZE] = {0};
-        int bytes_read = llread(fd, data, MAX_SIZE);
-        if(bytes_read < 0){
-            printf("\tError llread\n");
-            return -1;
-        }
-        printf("bytes_read: %d\n", bytes_read);
-
-        printf("Data received: %s\n", data);
-        llclose(fd, isTransmitter);
-        
+        receiveFileSerialLink(serialPortName);
     }
+
 
     return 0;
 }
