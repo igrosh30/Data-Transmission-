@@ -31,7 +31,7 @@ void receiveFileSerialLink(const char *serialPortName, const char *filename,
     config.timeout = timeout;
     config.numTries = nTries;
 
-    int fd = llopen(serialPortName, TRANSMITER, &config);  
+    int fd = llopen(serialPortName, 0, &config);  
 
     if (fd < 0) {
         printf("ERROR: %d\n",fd);

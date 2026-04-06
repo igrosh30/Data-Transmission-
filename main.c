@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
         exit(1);
         return 1;
     }
-
+    printf("Transmitter?: %d\n", isTransmitter);
     if(isTransmitter){
         sendFileSerialLink(serialPortName, "penguin.gif", BAUDRATE, 3, 3);
     }else{
