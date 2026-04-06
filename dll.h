@@ -15,7 +15,6 @@
 #define MAX_SIZE 256
 #define BAUDRATE B38400
 
-#define TIMEOUT_RECEIVER 3 //seconds
 
 #define MAX_ALARM_COUNT_RX 4 //
 
@@ -28,15 +27,14 @@ struct linkLayer {
     unsigned int timeout; /*Timer value: 1 s*/
     unsigned int numTransmissions; /*Number of retries in case of failure*/
     char frame[MAX_SIZE]; /*Frame*/
-};
-
+} linkLayer;
 int setup_termios(int fd);
 
 int llclose(int fd, bool isTransmitter);
 
 int llwrite(int fd, const unsigned char *buf, int bufSize);
 
-int llopen(const char serialPortName[], bool isTransmitter);
+int llopen(const char serialPortName[], bool isTransmitter, DLLConfig *config);
 
 int llread(int fd, char* buf, uint16_t size_buf);
 
