@@ -1,81 +1,8 @@
-/*
-1- we have a hard Coded BaudRate! 
-2- we are passing the role- this means ti should he same file for both! 
-
-*/
 #include "tx_appLayer.h"
+#include <time.h>
+#include <sys/time.h>
 
-
-void sendFileSerialLink(const char *serialPortName, const char *filename, 
-                        int baudRate, int nTries, int timeout)
-{ 
-    FILE *file = NULL;
-    file = fopen(filename, "rb");
-    if (!file) {
-        perror("fopen");
-        return;                     
-    }
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    rewind(file);
-    if(fileSize < 0) 
-    {
-        perror("ftell");
-        fclose(file);
-        return;
-    }
-    printf("File opened successfully - size = %ld bytes\n", fileSize);
-
-    DLLConfig config;
-    config.baudrate = baudRate;
-    config.timeout = timeout;
-    config.numTries = nTries;
-
-    int fd = llopen(serialPortName, isTRANSMITER, &config);  
-
-    if (fd < 0) 
-    {
-        printf("ERROR: %d\n",fd);
-        goto end;
-    }
-    printf("Connection established (fd = %d)\n", fd);
-
-    //ALL ok, let's build start packet! 
-    unsigned char packet[1024];
-    int len = buildControlPacket(2,packet, filename, fileSize);
-    int res_start = llwrite(fd, packet, len);
-    if ( res_start < 0) {
-        printf("ERROR sending START packet: %d\n",res_start);
-        goto end;
-    }
-
-    //all ok, let's send the data! 
-    #define MAX_DATA_SIZE 900
-    unsigned char dataBuf[MAX_DATA_SIZE];
-    size_t bytesRead;
-
-    while ((bytesRead = fread(dataBuf, 1, MAX_DATA_SIZE, file)) > 0) {
-        len = buildDataPacket(packet, dataBuf, (int)bytesRead);
-        int res_data = llwrite(fd, packet, len);
-        
-        if ( res_data < 0) {
-            printf("res_data: %d\n",res_data);
-            printf("ERROR sending DATA packet - aborting: %d\n", res_data);
-            goto end;
-        }
-    }
-
-    len = buildControlPacket(3, packet,filename, fileSize);
-    if (llwrite(fd, packet, len) < 0) printf("ERROR sending END packet\n");
-    else printf("END packet sent successfully\n");
-
-end:
-    if (fd >= 0)      llclose(fd, isTRANSMITER);
-    if (file != NULL) fclose(file);
-    printf("=== File transfer finished ===\n");
-    
-}
-
+extern int retransmission_count;
 
 static int buildControlPacket(unsigned char controlByte, 
                               unsigned char *packet, 
@@ -83,43 +10,110 @@ static int buildControlPacket(unsigned char controlByte,
                               long fileSize)
 {
     int idx = 0;
-    packet[idx++] = controlByte;          // C = 2 (START) or C = 3 (END)
-    
-    // TLV: File size (T=0, V = ASCII decimal string)
+    packet[idx++] = controlByte;
+
     char sizeBuf[32]; 
     int sizeLen = sprintf(sizeBuf, "%ld", fileSize);
     
-    packet[idx++] = 0;                    // T = 0 (size)
+    packet[idx++] = 0;
     packet[idx++] = (unsigned char)sizeLen;
     memcpy(packet + idx, sizeBuf, sizeLen);
     idx += sizeLen;
 
-    // TLV: File name (T=1)
     int nameLen = strlen(filename);
-    packet[idx++] = 1;                    // T = 1 (name)
+    packet[idx++] = 1;
     packet[idx++] = (unsigned char)nameLen;
     memcpy(packet + idx, filename, nameLen);
     idx += nameLen;
 
-    return idx;   // total length of the packet
+    return idx;
 }
-
 
 static int buildDataPacket(unsigned char *packet, 
                            const unsigned char *data, 
                            int dataLen)
 {
-    //TENHO DE VER AINDA MELHOR!
     int idx = 0;
-
-    packet[idx++] = 1;                    // C = 1 → DATA
+    packet[idx++] = 1;
 
     uint16_t k = (uint16_t)dataLen;
-    packet[idx++] = (k >> 8) & 0xFF;      // L2 (high byte)
-    packet[idx++] = k & 0xFF;             // L1 (low byte)
+    packet[idx++] = (k >> 8) & 0xFF;
+    packet[idx++] = k & 0xFF;
 
     memcpy(packet + idx, data, dataLen);
     idx += dataLen;
 
     return idx;
+}
+
+void sendFileSerialLink(const char *serialPortName, const char *filename, 
+                        int baudRate, int nTries, int timeout, 
+                        int numRuns, double fer)
+{
+    FILE *csv = fopen("results.csv", "a");
+    if (csv && ftell(csv) == 0) {
+        fprintf(csv, "run,baudrate,fer,file_name,file_size_bytes,transfer_time_sec,throughput_bps,retransmissions\n");
+    }
+
+    for (int run = 1; run <= numRuns; run++) {
+        printf("\n=== Run %d / %d | Baud: %d | FER: %.3f ===\n", run, numRuns, baudRate, fer);
+
+        retransmission_count = 0;
+
+        struct timeval startTime, endTime;
+        gettimeofday(&startTime, NULL);
+
+        FILE *file = fopen(filename, "rb");
+        if (!file) {
+            perror("fopen");
+            continue;
+        }
+        fseek(file, 0, SEEK_END);
+        long fileSize = ftell(file);
+        rewind(file);
+
+        DLLConfig config = { .baudrate = baudRate, .timeout = timeout, .numTries = nTries };
+        int fd = llopen(serialPortName, true, &config);
+
+        if (fd < 0) {
+            printf("ERROR: llopen failed\n");
+            fclose(file);
+            continue;
+        }
+
+        unsigned char packet[1024];
+        int len = buildControlPacket(2, packet, filename, fileSize);
+        llwrite(fd, packet, len);
+
+        #define MAX_DATA_SIZE 900
+        unsigned char dataBuf[MAX_DATA_SIZE];
+        size_t bytesRead;
+        while ((bytesRead = fread(dataBuf, 1, MAX_DATA_SIZE, file)) > 0) {
+            len = buildDataPacket(packet, dataBuf, (int)bytesRead);
+            llwrite(fd, packet, len);
+        }
+
+        len = buildControlPacket(3, packet, filename, fileSize);
+        llwrite(fd, packet, len);
+
+        llclose(fd, true);
+        fclose(file);
+
+        gettimeofday(&endTime, NULL);
+        double time_sec = (endTime.tv_sec - startTime.tv_sec) + 
+                          (endTime.tv_usec - startTime.tv_usec) / 1000000.0;
+
+        double throughput = (time_sec > 0) ? (fileSize / time_sec) : 0.0;
+
+        printf("Run %d finished → Time: %.3fs | Throughput: %.0f B/s | Retransmissions: %d\n",
+               run, time_sec, throughput, retransmission_count);
+
+        if (csv) {
+            fprintf(csv, "%d,%d,%.3f,%s,%ld,%.3f,%.0f,%d\n",
+                    run, baudRate, fer, filename, fileSize, time_sec, throughput, retransmission_count);
+        }
+    }
+
+    if (csv) fclose(csv);
+    printf("\n=== All %d runs finished. Results saved in results.csv ===\n", numRuns);
 }
