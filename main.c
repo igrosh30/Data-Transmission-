@@ -8,9 +8,11 @@ int main(int argc, char *argv[])
 {
     if (argc < 4) {
         printf("Usage:\n");
-        printf("  Transmitter: %s <port> 1 <filename> <baudRate> <numRuns> <fer>\n", argv[0]);
-        printf("  Receiver:    %s <port> 0 <outputFilename>\n", argv[0]);
-        printf("Example: %s /dev/ttyUSB0 1 penguin.gif 115200 8 0.0\n", argv[0]);
+        printf("  Transmitter: %s <port> 1 <filename> <baudRate> [numRuns] [fer]\n", argv[0]);
+        printf("  Receiver:    %s <port> 0 <outputFilename> <baudRate>\n", argv[0]);
+        printf("Example:\n");
+        printf("  Transmitter: %s /dev/ttyUSB0 1 penguin.gif 115200 5 0.0\n", argv[0]);
+        printf("  Receiver:    %s /dev/ttyUSB1 0 received_penguin.gif 115200\n", argv[0]);
         return 1;
     }
 
@@ -27,8 +29,9 @@ int main(int argc, char *argv[])
         sendFileSerialLink(serialPort, filename, baudRate, 3, 3, numRuns, fer);
     } 
     else {
-        printf("=== RECEIVER MODE ===\n");
-        receiveFileSerialLink(serialPort, filename, 38400, 3, 3);
+        int baudRate = (argc >= 5) ? atoi(argv[4]) : 38400;
+        printf("=== RECEIVER - baud %d ===\n", baudRate);
+        receiveFileSerialLink(serialPort, filename, baudRate, 3, 3);
     }
 
     return 0;
