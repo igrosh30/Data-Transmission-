@@ -1,8 +1,3 @@
-/*
- * Receiver Application Layer
- * Follows Slide 22 exactly (General operation of the Rx application layer)
- */
-
 #include "rx_appLayer.h"   // you will create this header (see below)
 
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+
 #include "tx_appLayer.h"
 #include "rx_appLayer.h"
 

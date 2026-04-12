@@ -2,7 +2,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-extern int retransmission_count;
+int retransmission_count = 0;
 
 static int buildControlPacket(unsigned char controlByte, 
                               unsigned char *packet, 
@@ -116,4 +116,33 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
 
     if (csv) fclose(csv);
     printf("\n=== All %d runs finished. Results saved in results.csv ===\n", numRuns);
+}
+static int parseControlPacket(const unsigned char *packet, int packetLen,
+                              long *fileSize, char *filenameOut, int maxNameLen)
+{
+    if (packetLen < 1) return -1;
+    unsigned char C = packet[0];
+    if (C != 2 && C != 3) return -1;
+
+    int idx = 1;
+    if (idx + 2 >= packetLen || packet[idx] != 0) return -1;
+    int L = packet[idx + 1];
+    idx += 2;
+    if (idx + L > packetLen) return -1;
+
+    char sizeBuf[32] = {0};
+    memcpy(sizeBuf, packet + idx, (L < 31 ? L : 31));
+    *fileSize = atol(sizeBuf);
+    idx += L;
+
+    if (idx + 2 >= packetLen || packet[idx] != 1) return -1;
+    L = packet[idx + 1];
+    idx += 2;
+    if (idx + L > packetLen) return -1;
+
+    if (L >= maxNameLen) L = maxNameLen - 1;
+    memcpy(filenameOut, packet + idx, L);
+    filenameOut[L] = '\0';
+
+    return C;
 }
