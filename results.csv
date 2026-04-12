@@ -10,3 +10,6 @@ run,baudrate,fer,file_name,file_size_bytes,transfer_time_sec,throughput_bps,retr
 1,57608,0.000,penguin.gif,10968,7.344,1494,0
 1,76808,0.000,penguin.gif,10968,7.344,1493,0
 1,96008,0.000,penguin.gif,10968,7.344,1493,0
+1,115200,0.000,penguin.gif,10968,2.300,4769,0
+
+1,115200,0.000,penguin.gif,10968,5.298,2070,0
