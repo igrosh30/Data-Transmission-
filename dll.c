@@ -534,7 +534,23 @@ int setup_termios(int fd)
     // Clear struct for new port settings
     memset(&newtio, 0, sizeof(newtio));
 
-    newtio.c_cflag = linkLayer.baudRate | CS8 | CLOCAL | CREAD;
+// === BAUDRATE MAPPING ===
+    speed_t speed;
+    switch (linkLayer.baudRate) {
+        case 1200:    speed = B1200;    break;
+        case 2400:    speed = B2400;    break;
+        case 4800:    speed = B4800;    break;
+        case 9600:    speed = B9600;    break;
+        case 19200:   speed = B19200;   break;
+        case 38400:   speed = B38400;   break;
+        case 57600:   speed = B57600;   break;
+        case 115200:  speed = B115200;  break;
+        default:
+            printf("\tWarning: Unsupported baudrate %d. Using 38400\n", linkLayer.baudRate);
+            speed = B38400;
+            break;
+    }
+    newtio.c_cflag = speed | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
     newtio.c_lflag = 0;
