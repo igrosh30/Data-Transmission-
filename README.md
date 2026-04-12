@@ -31,3 +31,7 @@ Alarm #4 received
                 Error waiting for SET frame
 ERROR: llopen failed (code -1)
 === File transfer finished (receiver) ===
+
+
+chmod +x rx.sh
+./rx.sh
