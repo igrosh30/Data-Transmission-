@@ -51,11 +51,11 @@ int llopen(const char serialPortName[], bool isTransmitter, DLLConfig *config)
     if (DESCRIPTION)
     {
         printf("\tConfig provided:\n");
-        printf("\t\tBaudrate: %d\n", config->baudrate);
+        printf("\t\tBaudrate: %d\n", config->baudRate);
         printf("\t\tTimeout: %d\n", config->timeout);
         printf("\t\tNumTries: %d\n", config->numTries);
     }
-    linkLayer.baudRate = config->baudrate;
+    linkLayer.baudRate = config->baudRate;
     linkLayer.timeout = config->timeout;
     linkLayer.numTransmissions = config->numTries;
 
@@ -534,7 +534,7 @@ int setup_termios(int fd)
     // Clear struct for new port settings
     memset(&newtio, 0, sizeof(newtio));
 
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+    newtio.c_cflag = linkLayer.baudRate | CS8 | CLOCAL | CREAD;
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
     newtio.c_lflag = 0;

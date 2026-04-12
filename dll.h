@@ -15,7 +15,7 @@
 #define DLL_MAX_SIZE 2048//alterar aqui! 
 //#define MAX_DATA_SIZE (DLL_MAX_SIZE - 10)
 
-#define BAUDRATE B38400
+//#define BAUDRATE B38400
 
 
 #define MAX_ALARM_COUNT_RX 4 //

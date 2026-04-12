@@ -72,7 +72,8 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
         long fileSize = ftell(file);
         rewind(file);
 
-        DLLConfig config = { .baudrate = baudRate, .timeout = timeout, .numTries = nTries };
+       
+        DLLConfig config = { .baudRate = baudRate, .timeout = timeout, .numTries = nTries };
         int fd = llopen(serialPortName, true, &config);
 
         if (fd < 0) {

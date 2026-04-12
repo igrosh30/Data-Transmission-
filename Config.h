@@ -31,7 +31,7 @@ typedef enum{
 
 
 typedef struct {
-    uint8_t baudrate;
+    int baudRate;
     uint8_t timeout;
     uint8_t numTries;
 } DLLConfig;

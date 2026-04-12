@@ -71,7 +71,7 @@ void receiveFileSerialLink(const char *serialPortName, const char *filename,
 
     // 1. Prepare config (same as transmitter)
     DLLConfig config;
-    config.baudrate = baudRate;
+    config.baudRate = baudRate;
     config.timeout  = timeout;
     config.numTries = nTries;
 
