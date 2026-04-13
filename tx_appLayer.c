@@ -48,11 +48,11 @@ static int buildDataPacket(unsigned char *packet,
 
 void sendFileSerialLink(const char *serialPortName, const char *filename, 
                         int baudRate, int nTries, int timeout, 
-                        int numRuns, double fer)
+                        int numRuns, double fer, int dataSize)
 {
     FILE *csv = fopen("results.csv", "a");
     if (csv && ftell(csv) == 0) {
-        fprintf(csv, "run,baudrate,fer,file_name,file_size_bytes,transfer_time_sec,throughput_bps,retransmissions\n");
+        fprintf(csv, "run,baudrate,data_size,fer,file_name,file_size_bytes,transfer_time_sec,throughput_bps,retransmissions\n");
     }
 
     for (int run = 1; run <= numRuns; run++) {
@@ -86,10 +86,11 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
         int len = buildControlPacket(2, packet, filename, fileSize);
         llwrite(fd, packet, len);
 
-        #define MAX_DATA_SIZE 900
-        unsigned char dataBuf[MAX_DATA_SIZE];
+        //#define MAX_DATA_SIZE 900
+        if(dataSize < 0 ) return -81;
+        unsigned char dataBuf[dataSize];
         size_t bytesRead;
-        while ((bytesRead = fread(dataBuf, 1, MAX_DATA_SIZE, file)) > 0) {
+        while ((bytesRead = fread(dataBuf, 1, dataSize, file)) > 0) {
             len = buildDataPacket(packet, dataBuf, (int)bytesRead);
             llwrite(fd, packet, len);
         }
@@ -110,8 +111,8 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
                run, time_sec, throughput, retransmission_count);
 
         if (csv) {
-            fprintf(csv, "%d,%d,%.3f,%s,%ld,%.3f,%.0f,%d\n",
-                    run, baudRate, fer, filename, fileSize, time_sec, throughput, retransmission_count);
+            fprintf(csv, "%d,%d,%d,%.3f,%s,%ld,%.3f,%.0f,%d\n",
+                run, baudRate, dataSize, fer, filename, fileSize, time_sec, throughput, retransmission_count);
         }
     }
 

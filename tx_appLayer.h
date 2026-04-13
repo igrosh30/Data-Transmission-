@@ -12,7 +12,7 @@
 // Transmitter
 void sendFileSerialLink(const char *serialPortName, const char *filename, 
                         int baudRate, int nTries, int timeout, 
-                        int numRuns, double fer);
+                        int numRuns, double fer, int dataSize);
 
 
 #endif
