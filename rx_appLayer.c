@@ -133,7 +133,7 @@ void receiveFileSerialLink(const char *serialPortName, const char *filename,
                 continue;
             }
 
-            unsigned char dataBuf[512];
+            unsigned char dataBuf[DLL_MAX_SIZE];
             int dataLen = extractDataSegment(packet, bytes, dataBuf, sizeof(dataBuf));
 
             if (dataLen > 0)

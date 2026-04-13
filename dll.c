@@ -8,7 +8,7 @@
 #include "Config.h"
 #include "alarm_sigaction.h" 
 #include "stateMachine.h"
-
+#include <stdlib.h>
 
 #include "dll.h"
 
@@ -58,7 +58,7 @@ int llopen(const char serialPortName[], bool isTransmitter, DLLConfig *config)
     linkLayer.baudRate = config->baudRate;
     linkLayer.timeout = config->timeout;
     linkLayer.numTransmissions = config->numTries;
-
+    linkLayer.fer = config->fer;
 
 
     // Open serial port device for reading and writing, and not as controlling tty
@@ -205,21 +205,29 @@ int llwrite(int fd, const unsigned char *buf, int bufSize)
     }
     I_frame[frameLen++] = FLAG;
 
-    int bytes_write = write(fd,I_frame,frameLen);
+    extern int retransmission_count;
+
+    //int bytes_write = write(fd,I_frame,frameLen);
+    //write with noise! 
+    int bytes_write = send_with_fer(fd, I_frame, frameLen, linkLayer.fer);
     if (bytes_write != frameLen) return -7;
 
     alarmCount = 0;
     alarmEnabled = FALSE;
     STATE current_state = STATE_START;
+
     while (alarmCount < 4 && current_state != STOP)
     {
         if (alarmEnabled == FALSE) {
-            alarm(3);
+            alarm(linkLayer.timeout);
             alarmEnabled = TRUE;
 
             if (alarmCount > 0) { 
+                printf("\n\tTimeout or REJ -> Frame resent (retry %d)\n", alarmCount);
+                retransmission_count++; // Update CSV tracker!
                 //C    = (Ns == 0) ? 0x00 : 0x40; //Alex tentou alterar 
-                write(fd, I_frame, frameLen);
+                //write(fd, I_frame, frameLen);
+                send_with_fer(fd, I_frame, frameLen, linkLayer.fer);
             }
         }
 
@@ -721,4 +729,22 @@ int send_C(int fd, unsigned char C_send){
         return -2; // Error writing frame
     }
     return bytes_written;
+}
+
+
+int send_with_fer(int fd, unsigned char *frame, int len, double fer) {
+    unsigned char temp[DLL_MAX_SIZE * 2 + 10];
+    memcpy(temp, frame, len); // Copy frame so we don't permanently corrupt the original
+    
+    // Generate random double between 0.0 and 1.0
+    double r = (double)rand() / (double)RAND_MAX;
+    
+    if (r < fer) {
+        // Pick a random index to corrupt (avoiding the first/last FLAG bytes)
+        int idx = 1 + (rand() % (len - 2));
+        temp[idx] ^= 0xFF; // Flip bits to simulate corruption
+        printf("\n[!] FER SIMULATED: Corrupted byte at index %d [!]\n", idx);
+    }
+    
+    return write(fd, temp, len);
 }

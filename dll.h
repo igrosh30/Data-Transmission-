@@ -28,6 +28,7 @@ struct linkLayer {
     unsigned int sequenceNumber; /*Frame sequence number: 0, 1*/
     unsigned int timeout; /*Timer value: 1 s*/
     unsigned int numTransmissions; /*Number of retries in case of failure*/
+    double fer;
     char frame[DLL_MAX_SIZE]; /*Frame*/
 };
 
@@ -46,5 +47,7 @@ int send_C_N_wait_C(int fd, unsigned char C_send, unsigned char C_receive);
 int wait_C(int fd, unsigned char C_receive);
 
 int send_C(int fd, unsigned char C_send);
+
+int send_with_fer(int fd, unsigned char *frame, int len, double fer);
 
 #endif

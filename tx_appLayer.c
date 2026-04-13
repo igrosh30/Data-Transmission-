@@ -1,6 +1,7 @@
 #include "tx_appLayer.h"
 #include <time.h>
 #include <sys/time.h>
+#include <stdlib.h>
 
 int retransmission_count = 0;
 
@@ -72,8 +73,9 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
         long fileSize = ftell(file);
         rewind(file);
 
-       
-        DLLConfig config = { .baudRate = baudRate, .timeout = timeout, .numTries = nTries };
+       srand(time(NULL));
+       DLLConfig config = { .baudRate = baudRate, .timeout = timeout, .numTries = nTries, .fer = fer };
+        //DLLConfig config = { .baudRate = baudRate, .timeout = timeout, .numTries = nTries };
         int fd = llopen(serialPortName, true, &config);
 
         if (fd < 0) {
