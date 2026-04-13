@@ -89,7 +89,7 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
         llwrite(fd, packet, len);
 
         //#define MAX_DATA_SIZE 900
-        if(dataSize < 0 ) return -81;
+        if(dataSize < 0 ) return ;
         unsigned char dataBuf[dataSize];
         size_t bytesRead;
         while ((bytesRead = fread(dataBuf, 1, dataSize, file)) > 0) {
