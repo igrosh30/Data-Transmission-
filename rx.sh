@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the 10 baud rates you want to test
-BAUDRATES="9600 19200 38400 57600 115200"
+BAUDRATES="115200"
 
 for baud in $BAUDRATES; do
     echo ">>> Preparing for Baud Rate: $baud"

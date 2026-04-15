@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Must match the Receiver's list exactly!
-BAUDRATES="9600 19200 38400 57600 115200"
+BAUDRATES="115200"
 DATA_SIZES="50 100 200 300 400 500 600 700 800"
 FER_VALUES="0.01 0.05 0.1"
 

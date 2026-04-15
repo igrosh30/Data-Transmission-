@@ -737,14 +737,24 @@ int send_with_fer(int fd, unsigned char *frame, int len, double fer) {
     memcpy(temp, frame, len); // Copy frame so we don't permanently corrupt the original
     
     // Generate random double between 0.0 and 1.0
-    double r = (double)rand() / (double)RAND_MAX;
+    for(size_t i = 0; i < len; i++){
+        double r = (double)rand() / (double)RAND_MAX;
+        if (r < fer*0.001) {
+            temp[i] ^= 0xFF; // Flip bits to simulate corruption
+            printf("\n[!] FER SIMULATED: Corrupted byte at index %d [!]\n", i);
+        }
+    }
     
+    /*
     if (r < fer) {
         // Pick a random index to corrupt (avoiding the first/last FLAG bytes)
         int idx = 1 + (rand() % (len - 2));
         temp[idx] ^= 0xFF; // Flip bits to simulate corruption
         printf("\n[!] FER SIMULATED: Corrupted byte at index %d [!]\n", idx);
     }
-    
+    */
+
+
+
     return write(fd, temp, len);
 }
