@@ -113,7 +113,7 @@ void sendFileSerialLink(const char *serialPortName, const char *filename,
                run, time_sec, throughput, retransmission_count);
 
         if (csv) {
-            fprintf(csv, "%d,%d,%d,%.3f,%s,%ld,%.3f,%.0f,%d\n",
+            fprintf(csv, "%d,%d,%d,%.4f,%s,%ld,%.3f,%.0f,%d\n",
                 run, baudRate, dataSize, fer, filename, fileSize, time_sec, throughput, retransmission_count);
         }
     }

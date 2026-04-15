@@ -3,7 +3,7 @@
 # Must match the Receiver's list exactly!
 BAUDRATES="115200"
 DATA_SIZES="50 100 200 300 400 500 600 700 800"
-FER_VALUES="0.01 0.05 0.1"
+FER_VALUES="0.0001 0.0005 0.001"
 
 for baud in $BAUDRATES; do
     echo "================================================"
@@ -16,7 +16,7 @@ for baud in $BAUDRATES; do
             echo "  >>> Testing Size: $size bytes | FER: $fer"
             
             # Run the transmitter 10 times for each combination
-            for i in {1..5}; do
+            for i in {1..10}; do
                 echo "  [Run $i/5] Sending..."
                 
                 # Args: <port> 1 <file> <baud> <numRuns> <fer> <dataSize>
